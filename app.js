@@ -2,7 +2,7 @@
 let appData = JSON.parse(localStorage.getItem('spellingAppData')) || {
     user: null,
     children: [],
-    dictations: {} // childId: [ {id, title, lang, date, words: []} ]
+    dictations: {}
 };
 
 let currentChild = null;
@@ -10,6 +10,19 @@ let currentDictation = null;
 let currentWordIndex = 0;
 let userMistakes = [];
 let synth = window.speechSynthesis;
+let voices = [];
+
+// טעינת קולות המערכת לדפדפן (חובה לכרום)
+function populateVoices() {
+    if (synth) {
+        voices = synth.getVoices();
+    }
+}
+
+populateVoices();
+if (synth && onvoiceschanged in synth) {
+    synth.onvoiceschanged = populateVoices;
+}
 
 // ניהול מעבר מסכים
 function showScreen(screenId) {
@@ -24,7 +37,6 @@ document.getElementById('guest-login-btn').addEventListener('click', () => {
 });
 
 document.getElementById('google-login-btn').addEventListener('click', () => {
-    // סימולציית התחברות Google (בהמשך ניתן לחבר ל-Firebase Auth)
     appData.user = { name: 'משתמש Google', email: 'user@gmail.com' };
     saveAndRenderProfiles();
 });
@@ -70,7 +82,6 @@ function renderProfiles() {
 }
 
 function openParentOrPractice() {
-    // מעבר לבחירת הכתבה או ניהול
     document.getElementById('current-managing-child').innerText = currentChild.name;
     renderDictationsList();
     showScreen('parent-screen');
@@ -143,6 +154,17 @@ function speakCurrentWord() {
         synth.cancel();
         const utterance = new SpeechSynthesisUtterance(word);
         utterance.lang = currentDictation.lang === 'he' ? 'he-IL' : 'en-US';
+        
+        // התאמת קול זמין בדפדפן
+        if (voices.length === 0) {
+            voices = synth.getVoices();
+        }
+        const langPrefix = currentDictation.lang === 'he' ? 'he' : 'en';
+        const targetVoice = voices.find(v => v.lang.startsWith(langPrefix));
+        if (targetVoice) {
+            utterance.voice = targetVoice;
+        }
+
         utterance.rate = 0.9;
         synth.speak(utterance);
     }
@@ -157,7 +179,7 @@ document.getElementById('fallback-audio-btn').addEventListener('click', () => {
     const gain = ctx.createGain();
     osc.connect(gain);
     gain.connect(ctx.destination);
-    osc.frequency.value = 587.33; // צליל D5
+    osc.frequency.value = 587.33;
     osc.start();
     setTimeout(() => osc.stop(), 200);
 });
@@ -185,7 +207,6 @@ function checkTypedWord() {
     inputField.value = '';
     currentWordIndex++;
 
-    // עדכון מד התקדמות
     const progress = (currentWordIndex / currentDictation.words.length) * 100;
     document.getElementById('progress-bar').style.width = `${progress}%`;
     document.getElementById('practice-word-counter').innerText = `מילה ${Math.min(currentWordIndex + 1, currentDictation.words.length)} מתוך ${currentDictation.words.length}`;
