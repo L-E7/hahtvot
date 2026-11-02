@@ -1,0 +1,113 @@
+:root {
+    --bg-gradient: linear-gradient(135deg, #74b9ff, #0984e3);
+    --card-bg: #ffffff;
+    --text-color: #2d3436;
+    --primary-color: #0984e3;
+    --accent-color: #00b894;
+}
+
+/* ערכות נושא */
+body[data-theme="soccer"] { --bg-gradient: linear-gradient(135deg, #55efc4, #00b894); --primary-color: #00b894; }
+body[data-theme="minecraft"] { --bg-gradient: linear-gradient(135deg, #b2bec3, #636e72); --primary-color: #2d3436; }
+body[data-theme="fortnite"] { --bg-gradient: linear-gradient(135deg, #a29bfe, #6c5ce7); --primary-color: #6c5ce7; }
+body[data-theme="unicorn"] { --bg-gradient: linear-gradient(135deg, #ff7675, #fd79a8); --primary-color: #e84393; }
+body[data-theme="stitch"] { --bg-gradient: linear-gradient(135deg, #74b9ff, #0984e3); --primary-color: #0984e3; }
+
+* {
+    box-sizing: border-box;
+    font-family: 'Rubik', sans-serif;
+}
+
+body {
+    margin: 0;
+    padding: 0;
+    background: var(--bg-gradient);
+    min-height: 100vh;
+    color: var(--text-color);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+
+.screen {
+    display: none;
+    width: 100%;
+    max-width: 600px;
+    padding: 20px;
+}
+
+.screen.active {
+    display: block;
+}
+
+.card {
+    background: var(--card-bg);
+    padding: 25px;
+    border-radius: 20px;
+    box-shadow: 0 10px 25px rgba(0,0,0,0.15);
+    margin-bottom: 20px;
+    text-align: center;
+}
+
+.btn {
+    padding: 12px 20px;
+    border: none;
+    border-radius: 12px;
+    font-size: 16px;
+    font-weight: 700;
+    cursor: pointer;
+    transition: transform 0.2s, background 0.2s;
+    margin: 5px;
+}
+
+.btn:active { transform: scale(0.95); }
+.primary-btn { background: var(--primary-color); color: white; }
+.secondary-btn { background: #b2bec3; color: white; }
+.success-btn { background: #00b894; color: white; }
+.dark-btn { background: #2d3436; color: white; }
+.warning-btn { background: #fdcb6e; color: #2d3436; }
+
+.big-btn { font-size: 20px; padding: 15px 30px; width: 100%; margin: 15px 0; }
+
+input, select, textarea {
+    width: 100%;
+    padding: 12px;
+    margin: 10px 0;
+    border: 2px solid #dfe6e9;
+    border-radius: 10px;
+    font-size: 16px;
+}
+
+.grid-container {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+    gap: 15px;
+    margin: 20px 0;
+}
+
+.profile-card {
+    background: white;
+    padding: 15px;
+    border-radius: 15px;
+    cursor: pointer;
+    box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+    transition: transform 0.2s;
+}
+
+.profile-card:hover { transform: translateY(-5px); }
+
+.progress-bar-container {
+    background: #dfe6e9;
+    border-radius: 10px;
+    height: 15px;
+    width: 100%;
+    overflow: hidden;
+    margin: 15px 0;
+}
+
+#progress-bar {
+    background: var(--accent-color);
+    height: 100%;
+    width: 0%;
+    transition: width 0.3s;
+}
