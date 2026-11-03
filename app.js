@@ -2,7 +2,7 @@
 let appData = JSON.parse(localStorage.getItem('spellingAppData')) || {
     user: null,
     children: [],
-    dictations: {} // { childId: [ { id, title, lang, date, words: [], stats: { attempts: 0 } } ] }
+    dictations: {} 
 };
 
 let currentChild = null;
@@ -84,7 +84,15 @@ document.addEventListener('DOMContentLoaded', () => {
             const lang = document.getElementById('dictation-lang').value;
             const date = document.getElementById('dictation-date').value;
             const wordsRaw = document.getElementById('dictation-words').value;
-            const words = wordsRaw.split(/,|\n/).map(w => w.trim()).filter(w => w.length > 0);
+
+            // עיבוד המילים: שורה אחר שורה, הסרת מספור אוטומטי (למשל "1. כלב" הופך ל-"כלב")
+            const words = wordsRaw.split(/\r?\n/).map(line => {
+                return line.replace(/^[\d\-\.\)]+\s*/, '').trim();
+            }).filter(w => w.length > 0);
+
+            if (words.length === 0) {
+                return alert('נא להכניס לפחות מילה אחת בשורה');
+            }
 
             if (!appData.dictations[currentChild.id]) {
                 appData.dictations[currentChild.id] = [];
@@ -106,7 +114,8 @@ document.addEventListener('DOMContentLoaded', () => {
                     id: 'dict_' + Date.now(),
                     title, lang, date, words,
                     attempts: 0,
-                    lastCategory: 'טרם נוסה'
+                    lastCategory: 'טרם נוסה',
+                    historyMistakes: [] // שמירת רשימת מילים שגויות מצטברות
                 });
             }
 
@@ -197,12 +206,17 @@ function renderDictationsList() {
     dicts.forEach(dict => {
         const attempts = dict.attempts || 0;
         const status = dict.lastCategory || 'טרם נוסה';
+        const historyMistakes = dict.historyMistakes && dict.historyMistakes.length > 0 
+            ? dict.historyMistakes.join(', ') 
+            : 'אין טעויות שמורות עדיין 🌟';
+
         const item = document.createElement('div');
         item.className = 'card';
         item.innerHTML = `
             <h4>${dict.title} (${dict.lang === 'he' ? 'עברית' : 'אנגלית'})</h4>
             <p>תאריך: ${dict.date} | מספר מילים: ${dict.words.length}</p>
             <p>📊 מספר ניסיונות: <b>${attempts}</b> | סטטוס אחרון: <b>${status}</b></p>
+            <p style="font-size: 14px; color: #d63031;">❌ מילים שגויות מניסיונות קודמים: <b>${historyMistakes}</b></p>
             <button class="btn success-btn" onclick="startPractice('${dict.id}')">התחל תרגול 🎯</button>
             <button class="btn secondary-btn" onclick="editDictation('${dict.id}')">ערוך ✏️</button>
         `;
@@ -218,7 +232,8 @@ window.editDictation = function(dictId) {
     document.getElementById('dictation-title').value = dict.title;
     document.getElementById('dictation-lang').value = dict.lang;
     document.getElementById('dictation-date').value = dict.date;
-    document.getElementById('dictation-words').value = dict.words.join(', ');
+    // הצגת המילים בשורות נפרדות בעריכה
+    document.getElementById('dictation-words').value = dict.words.join('\n');
 
     editingDictId = dict.id;
     const submitBtn = document.querySelector('#add-dictation-form button[type="submit"]');
@@ -226,16 +241,32 @@ window.editDictation = function(dictId) {
     window.scrollTo({ top: 0, behavior: 'smooth' });
 };
 
+// ערבוב רנדומלי של מערך (Fisher-Yates Shuffle)
+function shuffleArray(array) {
+    let arr = [...array];
+    for (let i = arr.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [arr[i], arr[j]] = [arr[j], arr[i]];
+    }
+    return arr;
+}
+
 window.startPractice = function(dictId) {
     if (!currentChild) return;
     const dicts = appData.dictations[currentChild.id];
-    currentDictation = dicts.find(d => d.id === dictId);
-    if (!currentDictation) return;
+    const originalDict = dicts.find(d => d.id === dictId);
+    if (!originalDict) return;
+
+    // יוצרים עותק של ההכתבה עם מילים רנדומליות לתרגול הנוכחי בלבד
+    currentDictation = {
+        ...originalDict,
+        words: shuffleArray(originalDict.words)
+    };
+
     currentWordIndex = 0;
     userMistakes = [];
     
-    // מעקב ניסיונות - כל פעם שמתחילים תרגול, מעדכנים מונה
-    currentDictation.attempts = (currentDictation.attempts || 0) + 1;
+    originalDict.attempts = (originalDict.attempts || 0) + 1;
     localStorage.setItem('spellingAppData', JSON.stringify(appData));
 
     const titleDisplay = document.getElementById('practice-title-display');
@@ -270,8 +301,18 @@ function checkTypedWord() {
     const inputField = document.getElementById('user-typed-word');
     if (!inputField || !currentDictation) return;
     const typedValue = inputField.value.trim();
-    const targetWord = currentDictation.words[currentWordIndex];
     const feedback = document.getElementById('feedback-message');
+
+    // תנאי: אי אפשר לעשות בדיקה אם הערך ריק
+    if (!typedValue) {
+        if (feedback) {
+            feedback.innerText = '⚠️ נא להקליד מילה לפני הבדיקה!';
+            feedback.style.color = '#fdcb6e';
+        }
+        return;
+    }
+
+    const targetWord = currentDictation.words[currentWordIndex];
 
     if (typedValue === targetWord) {
         if (feedback) {
@@ -311,11 +352,14 @@ function checkTypedWord() {
 function showResults() {
     showScreen('results-screen');
     if (!currentDictation) return;
+    
+    // מציאת ההכתבה המקורית בשביל לעדכן את ההיסטוריה שלה
+    const originalDict = appData.dictations[currentChild.id].find(d => d.id === currentDictation.id);
+
     const totalWords = currentDictation.words.length;
     const correctCount = totalWords - userMistakes.length;
     const percentage = (correctCount / totalWords) * 100;
 
-    // חלוקה ל-3 רמות הצלחה
     let category = '';
     let categoryEmoji = '';
     if (percentage === 100) {
@@ -329,9 +373,19 @@ function showResults() {
         categoryEmoji = '💡 לא נורא בכלל, כדאי לחזור על המילים שפספסת ולהתאמן שוב.';
     }
 
-    // שמירת הסטטוס האחרון בהכתבה
-    currentDictation.lastCategory = category;
-    localStorage.setItem('spellingAppData', JSON.stringify(appData));
+    if (originalDict) {
+        originalDict.lastCategory = category;
+        
+        // הוספת מילים שגויות חדשות לרשימת ההיסטוריה ללא כפילויות
+        if (!originalDict.historyMistakes) originalDict.historyMistakes = [];
+        userMistakes.forEach(m => {
+            if (!originalDict.historyMistakes.includes(m.target)) {
+                originalDict.historyMistakes.push(m.target);
+            }
+        });
+
+        localStorage.setItem('spellingAppData', JSON.stringify(appData));
+    }
 
     const scoreText = document.getElementById('final-score-text');
     if (scoreText) {
@@ -341,11 +395,11 @@ function showResults() {
     const mistakesBox = document.getElementById('mistakes-review');
     if (mistakesBox) {
         if (userMistakes.length > 0) {
-            mistakesBox.innerHTML = '<h4>מילים שכדאי לחזק:</h4>' + userMistakes.map(m => `
+            mistakesBox.innerHTML = '<h4>מילים שכדאי לחזק מהתרגול הנוכחי:</h4>' + userMistakes.map(m => `
                 <p>מילה: <b>${m.target}</b> (הקלדת: ${m.typed})</p>
             `).join('');
         } else {
-            mistakesBox.innerHTML = '<p>✨ אין טעויות בכלל!</p>';
+            mistakesBox.innerHTML = '<p>✨ אין טעויות בכלל בתרגול הזה!</p>';
         }
     }
 }
