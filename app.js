@@ -2,7 +2,7 @@
 let appData = JSON.parse(localStorage.getItem('spellingAppData')) || {
     user: null,
     children: [],
-    dictations: {}
+    dictations: {} // { childId: [ { id, title, lang, date, words: [], stats: { attempts: 0 } } ] }
 };
 
 let currentChild = null;
@@ -11,6 +11,7 @@ let currentWordIndex = 0;
 let userMistakes = [];
 let synth = window.speechSynthesis;
 let voices = [];
+let editingDictId = null;
 
 function populateVoices() {
     if (synth) {
@@ -23,34 +24,29 @@ if (synth && 'onvoiceschanged' in synth) {
     synth.onvoiceschanged = populateVoices;
 }
 
-// הרצה לאחר טעינת הדף לוודא שכל הכפתורים עובדים
 document.addEventListener('DOMContentLoaded', () => {
-    // מעבר בין מסכים
     window.showScreen = function(screenId) {
         document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
         const target = document.getElementById(screenId);
         if (target) target.classList.add('active');
     };
 
-    // כניסת אורח
     const guestBtn = document.getElementById('guest-login-btn');
     if (guestBtn) {
         guestBtn.addEventListener('click', () => {
-            appData.user = { name: 'אורח', email: 'guest@app.com' };
+            appData.user = { name: 'הורה / משתמש', email: 'user@app.com' };
             saveAndRenderProfiles();
         });
     }
 
-    // כניסת Google (סימולציה)
     const googleBtn = document.getElementById('google-login-btn');
     if (googleBtn) {
         googleBtn.addEventListener('click', () => {
-            appData.user = { name: 'משתמש Google', email: 'user@gmail.com' };
+            appData.user = { name: 'הורה מחובר', email: 'parent@gmail.com' };
             saveAndRenderProfiles();
         });
     }
 
-    // ניהול ערכת נושא
     const themeSelect = document.getElementById('theme-select');
     if (themeSelect) {
         themeSelect.addEventListener('change', (e) => {
@@ -58,7 +54,6 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
-    // הוספת ילד
     const addChildBtn = document.getElementById('add-child-btn');
     if (addChildBtn) {
         addChildBtn.addEventListener('click', () => {
@@ -75,14 +70,12 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
-    // כפתורי חזרה
     const backBtn1 = document.getElementById('back-to-profiles');
     if (backBtn1) backBtn1.addEventListener('click', () => showScreen('profile-screen'));
 
     const backBtn2 = document.getElementById('back-to-profiles-from-practice');
     if (backBtn2) backBtn2.addEventListener('click', () => showScreen('profile-screen'));
 
-    // טופס הוספת הכתבה
     const dictForm = document.getElementById('add-dictation-form');
     if (dictForm) {
         dictForm.addEventListener('submit', (e) => {
@@ -97,10 +90,25 @@ document.addEventListener('DOMContentLoaded', () => {
                 appData.dictations[currentChild.id] = [];
             }
 
-            appData.dictations[currentChild.id].push({
-                id: 'dict_' + Date.now(),
-                title, lang, date, words
-            });
+            if (editingDictId) {
+                const dict = appData.dictations[currentChild.id].find(d => d.id === editingDictId);
+                if (dict) {
+                    dict.title = title;
+                    dict.lang = lang;
+                    dict.date = date;
+                    dict.words = words;
+                }
+                editingDictId = null;
+                const submitBtn = dictForm.querySelector('button[type="submit"]');
+                if (submitBtn) submitBtn.innerText = 'שמור הכתבה 💾';
+            } else {
+                appData.dictations[currentChild.id].push({
+                    id: 'dict_' + Date.now(),
+                    title, lang, date, words,
+                    attempts: 0,
+                    lastCategory: 'טרם נוסה'
+                });
+            }
 
             localStorage.setItem('spellingAppData', JSON.stringify(appData));
             dictForm.reset();
@@ -108,7 +116,6 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
-    // כפתורי תרגול
     const speakBtn = document.getElementById('speak-word-btn');
     if (speakBtn) speakBtn.addEventListener('click', speakCurrentWord);
 
@@ -188,16 +195,36 @@ function renderDictationsList() {
     }
 
     dicts.forEach(dict => {
+        const attempts = dict.attempts || 0;
+        const status = dict.lastCategory || 'טרם נוסה';
         const item = document.createElement('div');
         item.className = 'card';
         item.innerHTML = `
             <h4>${dict.title} (${dict.lang === 'he' ? 'עברית' : 'אנגלית'})</h4>
             <p>תאריך: ${dict.date} | מספר מילים: ${dict.words.length}</p>
+            <p>📊 מספר ניסיונות: <b>${attempts}</b> | סטטוס אחרון: <b>${status}</b></p>
             <button class="btn success-btn" onclick="startPractice('${dict.id}')">התחל תרגול 🎯</button>
+            <button class="btn secondary-btn" onclick="editDictation('${dict.id}')">ערוך ✏️</button>
         `;
         listContainer.appendChild(item);
     });
 }
+
+window.editDictation = function(dictId) {
+    const dicts = appData.dictations[currentChild.id];
+    const dict = dicts.find(d => d.id === dictId);
+    if (!dict) return;
+
+    document.getElementById('dictation-title').value = dict.title;
+    document.getElementById('dictation-lang').value = dict.lang;
+    document.getElementById('dictation-date').value = dict.date;
+    document.getElementById('dictation-words').value = dict.words.join(', ');
+
+    editingDictId = dict.id;
+    const submitBtn = document.querySelector('#add-dictation-form button[type="submit"]');
+    if (submitBtn) submitBtn.innerText = 'עדכן הכתבה 🔄';
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+};
 
 window.startPractice = function(dictId) {
     if (!currentChild) return;
@@ -207,6 +234,10 @@ window.startPractice = function(dictId) {
     currentWordIndex = 0;
     userMistakes = [];
     
+    // מעקב ניסיונות - כל פעם שמתחילים תרגול, מעדכנים מונה
+    currentDictation.attempts = (currentDictation.attempts || 0) + 1;
+    localStorage.setItem('spellingAppData', JSON.stringify(appData));
+
     const titleDisplay = document.getElementById('practice-title-display');
     if (titleDisplay) titleDisplay.innerText = `הכתבה: ${currentDictation.title}`;
     showScreen('practice-screen');
@@ -280,20 +311,41 @@ function checkTypedWord() {
 function showResults() {
     showScreen('results-screen');
     if (!currentDictation) return;
-    const correctCount = currentDictation.words.length - userMistakes.length;
+    const totalWords = currentDictation.words.length;
+    const correctCount = totalWords - userMistakes.length;
+    const percentage = (correctCount / totalWords) * 100;
+
+    // חלוקה ל-3 רמות הצלחה
+    let category = '';
+    let categoryEmoji = '';
+    if (percentage === 100) {
+        category = 'הצלחת 🏆';
+        categoryEmoji = '🌟 מושלם! אלוף העולם!';
+    } else if (percentage >= 70) {
+        category = 'רק עוד קצת 💪';
+        categoryEmoji = '👍 קרוב מאוד למושלם! עוד מאמץ קטן ואתה שם!';
+    } else {
+        category = 'צריך עוד להתאמן 📚';
+        categoryEmoji = '💡 לא נורא בכלל, כדאי לחזור על המילים שפספסת ולהתאמן שוב.';
+    }
+
+    // שמירת הסטטוס האחרון בהכתבה
+    currentDictation.lastCategory = category;
+    localStorage.setItem('spellingAppData', JSON.stringify(appData));
+
     const scoreText = document.getElementById('final-score-text');
     if (scoreText) {
-        scoreText.innerText = `ענית נכון על ${correctCount} מתוך ${currentDictation.words.length} מילים!`;
+        scoreText.innerHTML = `ענית נכון על ${correctCount} מתוך ${totalWords} מילים!<br><br><b>רמת ביצוע: ${category}</b><br><span style="font-size: 16px; color: #636e72;">${categoryEmoji}</span>`;
     }
 
     const mistakesBox = document.getElementById('mistakes-review');
     if (mistakesBox) {
         if (userMistakes.length > 0) {
-            mistakesBox.innerHTML = '<h4>טיפים לחיזוק מילים שפספסת:</h4>' + userMistakes.map(m => `
-                <p>מילה: <b>${m.target}</b> (הקלדת: ${m.typed}) - 💡 טיפ: נסה לפרק את המילה להברות ולשנן את האותיות המרכזיות.</p>
+            mistakesBox.innerHTML = '<h4>מילים שכדאי לחזק:</h4>' + userMistakes.map(m => `
+                <p>מילה: <b>${m.target}</b> (הקלדת: ${m.typed})</p>
             `).join('');
         } else {
-            mistakesBox.innerHTML = '<p>🌟 מושלם! אין טעויות בכלל! אלוף העולם!</p>';
+            mistakesBox.innerHTML = '<p>✨ אין טעויות בכלל!</p>';
         }
     }
 }
