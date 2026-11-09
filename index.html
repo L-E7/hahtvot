@@ -67,7 +67,7 @@
                     <div id="english-challenge-option" style="margin: 10px 0; text-align: right; display: none;">
                         <label style="cursor: pointer; font-weight: bold; color: #0984e3;">
                             <input type="checkbox" id="challenge-mode-checkbox" style="width: auto; margin-left: 8px;">
-                            🎯 מצב אתגר אנגלית: הקלדת אות ראשונה ואחרונה בלבד
+                            🎯 מצב אתגר אנגלית: השלמת אות ראשונה ואחרונה (האמצע גלוי)
                         </label>
                     </div>
 
@@ -79,10 +79,10 @@
 
             <div class="card">
                 <h3>📅 בחר הכתבה לפי תאריך בלוח השנה</h3>
-                <div class="calendar-filter-box" style="margin-bottom: 15px;">
-                    <input type="date" id="calendar-date-picker">
-                    <button id="filter-by-date-btn" class="btn primary-btn" style="padding: 8px 15px; font-size: 14px;">הצג הכתבות לתאריך 🔍</button>
-                    <button id="show-all-dictations-btn" class="btn secondary-btn" style="padding: 8px 15px; font-size: 14px;">הצג הכל 📋</button>
+                <div class="calendar-filter-box" style="margin-bottom: 15px; display: flex; gap: 10px; justify-content: center; align-items: center; flex-wrap: wrap;">
+                    <input type="date" id="calendar-date-picker" style="width: auto;">
+                    <button id="filter-by-date-btn" class="btn primary-btn" style="padding: 10px 15px; font-size: 14px; margin: 0;">הצג לתאריך 🔍</button>
+                    <button id="show-all-dictations-btn" class="btn secondary-btn" style="padding: 10px 15px; font-size: 14px; margin: 0;">הצג הכל 📋</button>
                 </div>
                 <div id="existing-dictations-list"></div>
             </div>
@@ -105,7 +105,7 @@
                     תרגום: <span id="translation-text"></span>
                 </div>
 
-                <!-- רמז אות ראשונה ואחרונה במצב אתגר -->
+                <!-- רמז מצב אתגר -->
                 <div id="challenge-hint-box" style="font-size: 20px; color: #0984e3; font-weight: bold; margin: 10px 0; display: none;">
                     רמז: <span id="challenge-hint-text"></span>
                 </div>
