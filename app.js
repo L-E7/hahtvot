@@ -76,6 +76,19 @@ document.addEventListener('DOMContentLoaded', () => {
     const backBtn2 = document.getElementById('back-to-profiles-from-practice');
     if (backBtn2) backBtn2.addEventListener('click', () => showScreen('profile-screen'));
 
+    const langSelect = document.getElementById('dictation-lang');
+    const challengeOptionDiv = document.getElementById('english-challenge-option');
+    if (langSelect && challengeOptionDiv) {
+        langSelect.addEventListener('change', (e) => {
+            if (e.target.value === 'en') {
+                challengeOptionDiv.style.display = 'block';
+            } else {
+                challengeOptionDiv.style.display = 'none';
+                document.getElementById('challenge-mode-checkbox').checked = false;
+            }
+        });
+    }
+
     const dictForm = document.getElementById('add-dictation-form');
     if (dictForm) {
         dictForm.addEventListener('submit', (e) => {
@@ -84,11 +97,30 @@ document.addEventListener('DOMContentLoaded', () => {
             const lang = document.getElementById('dictation-lang').value;
             const date = document.getElementById('dictation-date').value;
             const wordsRaw = document.getElementById('dictation-words').value;
+            const isChallengeMode = document.getElementById('challenge-mode-checkbox').checked;
 
-            // עיבוד המילים: שורה אחר שורה, הסרת מספור אוטומטי (למשל "1. כלב" הופך ל-"כלב")
             const words = wordsRaw.split(/\r?\n/).map(line => {
-                return line.replace(/^[\d\-\.\)]+\s*/, '').trim();
-            }).filter(w => w.length > 0);
+                let cleanLine = line.replace(/^[\d\-\.\)]+\s*/, '').trim();
+                if (!cleanLine) return null;
+
+                let wordPart = cleanLine;
+                let translationPart = '';
+
+                if (cleanLine.includes('-')) {
+                    const parts = cleanLine.split('-');
+                    wordPart = parts[0].trim();
+                    translationPart = parts.slice(1).join('-').trim();
+                } else if (cleanLine.includes(',')) {
+                    const parts = cleanLine.split(',');
+                    wordPart = parts[0].trim();
+                    translationPart = parts.slice(1).join(',').trim();
+                }
+
+                return {
+                    word: wordPart,
+                    translation: translationPart
+                };
+            }).filter(item => item !== null && item.word.length > 0);
 
             if (words.length === 0) {
                 return alert('נא להכניס לפחות מילה אחת בשורה');
@@ -105,6 +137,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     dict.lang = lang;
                     dict.date = date;
                     dict.words = words;
+                    dict.isChallengeMode = isChallengeMode;
                 }
                 editingDictId = null;
                 const submitBtn = dictForm.querySelector('button[type="submit"]');
@@ -113,14 +146,33 @@ document.addEventListener('DOMContentLoaded', () => {
                 appData.dictations[currentChild.id].push({
                     id: 'dict_' + Date.now(),
                     title, lang, date, words,
+                    isChallengeMode,
                     attempts: 0,
                     lastCategory: 'טרם נוסה',
-                    historyMistakes: [] // שמירת רשימת מילים שגויות מצטברות
+                    historyMistakes: []
                 });
             }
 
             localStorage.setItem('spellingAppData', JSON.stringify(appData));
             dictForm.reset();
+            if (challengeOptionDiv) challengeOptionDiv.style.display = 'none';
+            renderDictationsList();
+        });
+    }
+
+    const filterBtn = document.getElementById('filter-by-date-btn');
+    if (filterBtn) {
+        filterBtn.addEventListener('click', () => {
+            const selectedDate = document.getElementById('calendar-date-picker').value;
+            if (!selectedDate) return alert('נא לבחור תאריך מלוח השנה');
+            renderDictationsList(selectedDate);
+        });
+    }
+
+    const showAllBtn = document.getElementById('show-all-dictations-btn');
+    if (showAllBtn) {
+        showAllBtn.addEventListener('click', () => {
+            document.getElementById('calendar-date-picker').value = '';
             renderDictationsList();
         });
     }
@@ -192,14 +244,18 @@ function openParentOrPractice() {
     showScreen('parent-screen');
 }
 
-function renderDictationsList() {
+function renderDictationsList(filterDate = null) {
     const listContainer = document.getElementById('existing-dictations-list');
     if (!listContainer || !currentChild) return;
     listContainer.innerHTML = '';
-    const dicts = appData.dictations[currentChild.id] || [];
+    let dicts = appData.dictations[currentChild.id] || [];
     
+    if (filterDate) {
+        dicts = dicts.filter(d => d.date === filterDate);
+    }
+
     if (dicts.length === 0) {
-        listContainer.innerHTML = '<p>אין עדיין הכתבות לפרופיל זה. צור הכתבה למעלה!</p>';
+        listContainer.innerHTML = '<p>אין הכתבות להצגה עבור בחירה זו.</p>';
         return;
     }
 
@@ -210,11 +266,13 @@ function renderDictationsList() {
             ? dict.historyMistakes.join(', ') 
             : 'אין טעויות שמורות עדיין 🌟';
 
+        const challengeBadge = dict.isChallengeMode ? '🎯 (מצב אתגר: השלמת אות ראשונה ואחרונה)' : '';
+
         const item = document.createElement('div');
         item.className = 'card';
         item.innerHTML = `
-            <h4>${dict.title} (${dict.lang === 'he' ? 'עברית' : 'אנגלית'})</h4>
-            <p>תאריך: ${dict.date} | מספר מילים: ${dict.words.length}</p>
+            <h4>${dict.title} (${dict.lang === 'he' ? 'עברית' : 'אנגלית'}) ${challengeBadge}</h4>
+            <p>תאריך: <b>${dict.date}</b> | מספר מילים: ${dict.words.length}</p>
             <p>📊 מספר ניסיונות: <b>${attempts}</b> | סטטוס אחרון: <b>${status}</b></p>
             <p style="font-size: 14px; color: #d63031;">❌ מילים שגויות מניסיונות קודמים: <b>${historyMistakes}</b></p>
             <button class="btn success-btn" onclick="startPractice('${dict.id}')">התחל תרגול 🎯</button>
@@ -232,8 +290,21 @@ window.editDictation = function(dictId) {
     document.getElementById('dictation-title').value = dict.title;
     document.getElementById('dictation-lang').value = dict.lang;
     document.getElementById('dictation-date').value = dict.date;
-    // הצגת המילים בשורות נפרדות בעריכה
-    document.getElementById('dictation-words').value = dict.words.join('\n');
+    
+    const formattedWords = dict.words.map(item => item.translation ? `${item.word} - ${item.translation}` : item.word).join('\n');
+    document.getElementById('dictation-words').value = formattedWords;
+
+    const langSelect = document.getElementById('dictation-lang');
+    const challengeOptionDiv = document.getElementById('english-challenge-option');
+    const challengeCheckbox = document.getElementById('challenge-mode-checkbox');
+
+    if (dict.lang === 'en') {
+        challengeOptionDiv.style.display = 'block';
+        challengeCheckbox.checked = !!dict.isChallengeMode;
+    } else {
+        challengeOptionDiv.style.display = 'none';
+        challengeCheckbox.checked = false;
+    }
 
     editingDictId = dict.id;
     const submitBtn = document.querySelector('#add-dictation-form button[type="submit"]');
@@ -241,7 +312,6 @@ window.editDictation = function(dictId) {
     window.scrollTo({ top: 0, behavior: 'smooth' });
 };
 
-// ערבוב רנדומלי של מערך (Fisher-Yates Shuffle)
 function shuffleArray(array) {
     let arr = [...array];
     for (let i = arr.length - 1; i > 0; i--) {
@@ -257,7 +327,6 @@ window.startPractice = function(dictId) {
     const originalDict = dicts.find(d => d.id === dictId);
     if (!originalDict) return;
 
-    // יוצרים עותק של ההכתבה עם מילים רנדומליות לתרגול הנוכחי בלבד
     currentDictation = {
         ...originalDict,
         words: shuffleArray(originalDict.words)
@@ -272,15 +341,47 @@ window.startPractice = function(dictId) {
     const titleDisplay = document.getElementById('practice-title-display');
     if (titleDisplay) titleDisplay.innerText = `הכתבה: ${currentDictation.title}`;
     showScreen('practice-screen');
+    setupCurrentWordUI();
     speakCurrentWord();
 };
 
+function setupCurrentWordUI() {
+    const currentItem = currentDictation.words[currentWordIndex];
+    const translationBox = document.getElementById('translation-hint-box');
+    const translationText = document.getElementById('translation-text');
+    const challengeBox = document.getElementById('challenge-hint-box');
+    const challengeText = document.getElementById('challenge-hint-text');
+    const inputField = document.getElementById('user-typed-word');
+
+    inputField.value = '';
+
+    if (currentItem.translation) {
+        translationBox.style.display = 'block';
+        translationText.innerText = currentItem.translation;
+    } else {
+        translationBox.style.display = 'none';
+    }
+
+    // מצב אתגר הפוך: האמצע גלוי, והילד צריך להקליד את האות הראשונה והאחרונה (או את שתי האותיות יחד)
+    if (currentDictation.isChallengeMode && currentItem.word.length > 2) {
+        challengeBox.style.display = 'block';
+        const word = currentItem.word;
+        const middlePart = word.substring(1, word.length - 1);
+        // מציגים _ עבור האות הראשונה והאחרונה, ובאמצע את האותיות המלאות
+        challengeText.innerText = `_  ${middlePart}  _  (השלם את האות הראשונה והאחרונה)`;
+        inputField.placeholder = "הקלד את שתי האותיות (ראשונה ואחרונה) או את המילה המלאה...";
+    } else {
+        challengeBox.style.display = 'none';
+        inputField.placeholder = "הקלד את המילה כאן...";
+    }
+}
+
 function speakCurrentWord() {
     if (!currentDictation) return;
-    const word = currentDictation.words[currentWordIndex];
-    if (synth && word) {
+    const currentItem = currentDictation.words[currentWordIndex];
+    if (synth && currentItem) {
         synth.cancel();
-        const utterance = new SpeechSynthesisUtterance(word);
+        const utterance = new SpeechSynthesisUtterance(currentItem.word);
         utterance.lang = currentDictation.lang === 'he' ? 'he-IL' : 'en-US';
         
         if (voices.length === 0) {
@@ -303,18 +404,37 @@ function checkTypedWord() {
     const typedValue = inputField.value.trim();
     const feedback = document.getElementById('feedback-message');
 
-    // תנאי: אי אפשר לעשות בדיקה אם הערך ריק
     if (!typedValue) {
         if (feedback) {
-            feedback.innerText = '⚠️ נא להקליד מילה לפני הבדיקה!';
+            feedback.innerText = '⚠️ נא להקליד ערך לפני הבדיקה!';
             feedback.style.color = '#fdcb6e';
         }
         return;
     }
 
-    const targetWord = currentDictation.words[currentWordIndex];
+    const currentItem = currentDictation.words[currentWordIndex];
+    const targetWord = currentItem.word;
 
-    if (typedValue === targetWord) {
+    let isCorrect = false;
+
+    if (currentDictation.isChallengeMode && targetWord.length > 2) {
+        const firstLetter = targetWord[0].toLowerCase();
+        const lastLetter = targetWord[targetWord.length - 1].toLowerCase();
+        
+        // הילד יכול להקליד את שתי האותיות יחד (למשל "ae" עבור apple) או את המילה המלאה
+        const typedClean = typedValue.toLowerCase().replace(/\s+/g, '');
+        const expectedPair = firstLetter + lastLetter;
+
+        if (typedClean === expectedPair || typedClean === targetWord.toLowerCase()) {
+            isCorrect = true;
+        }
+    } else {
+        if (typedValue.toLowerCase() === targetWord.toLowerCase()) {
+            isCorrect = true;
+        }
+    }
+
+    if (isCorrect) {
         if (feedback) {
             feedback.innerText = '🎉 מעולה! נכון מאוד!';
             feedback.style.color = '#00b894';
@@ -342,6 +462,7 @@ function checkTypedWord() {
     setTimeout(() => {
         if (feedback) feedback.innerText = '';
         if (currentWordIndex < currentDictation.words.length) {
+            setupCurrentWordUI();
             speakCurrentWord();
         } else {
             showResults();
@@ -353,7 +474,6 @@ function showResults() {
     showScreen('results-screen');
     if (!currentDictation) return;
     
-    // מציאת ההכתבה המקורית בשביל לעדכן את ההיסטוריה שלה
     const originalDict = appData.dictations[currentChild.id].find(d => d.id === currentDictation.id);
 
     const totalWords = currentDictation.words.length;
@@ -376,7 +496,6 @@ function showResults() {
     if (originalDict) {
         originalDict.lastCategory = category;
         
-        // הוספת מילים שגויות חדשות לרשימת ההיסטוריה ללא כפילויות
         if (!originalDict.historyMistakes) originalDict.historyMistakes = [];
         userMistakes.forEach(m => {
             if (!originalDict.historyMistakes.includes(m.target)) {
