@@ -13,7 +13,7 @@
     <div id="auth-screen" class="screen active">
         <div class="card auth-card">
             <h1>🎒 אלופפיצ'ר - עולם ההכתבות</h1>
-            <p>תרגול הכתבות חכם וכיפי בעברית ובאנגלית עם דמויות וערכות נושא אהובות!</p>
+            <p>תרגול הכתבות חכם וכיפי בעברית ובאנגלית לקראת המבחן של המורה!</p>
             <div class="auth-buttons">
                 <button id="google-login-btn" class="btn primary-btn">כניסה עם חשבון Google 🌐</button>
                 <button id="guest-login-btn" class="btn secondary-btn">כניסה כאורח 👤</button>
@@ -54,25 +54,27 @@
             <h2>ניהול הכתבות עבור: <span id="current-managing-child"></span></h2>
             
             <div class="card">
-                <h3>הוספת הכתבה חדשה</h3>
+                <h3>הוספת הכתבה חדשה (הכנה למבחן)</h3>
                 <form id="add-dictation-form">
-                    <input type="text" id="dictation-title" placeholder="שם ההכתבה (למשל: אנגלית שיעור 3)" required>
+                    <input type="text" id="dictation-title" placeholder="שם ההכתבה (למשל: חזרה למבחן - עמ' 37)" required>
                     <select id="dictation-lang">
                         <option value="he">עברית</option>
                         <option value="en">אנגלית</option>
                     </select>
                     <input type="date" id="dictation-date" required>
                     
-                    <!-- אפשרות למצב אתגר באנגלית -->
-                    <div id="english-challenge-option" style="margin: 10px 0; text-align: right; display: none;">
-                        <label style="cursor: pointer; font-weight: bold; color: #0984e3;">
-                            <input type="checkbox" id="challenge-mode-checkbox" style="width: auto; margin-left: 8px;">
-                            🎯 מצב אתגר אנגלית: השלמת אות ראשונה ואחרונה (האמצע גלוי)
-                        </label>
+                    <!-- בחירת מצב תרגול מיוחד -->
+                    <div style="margin: 15px 0; text-align: right; background: #f1f2f6; padding: 10px; border-radius: 8px;">
+                        <label style="display: block; font-weight: bold; margin-bottom: 5px; color: #2d3436;">בחר סגנון תרגול להכתבה זו:</label>
+                        <select id="practice-mode-select" style="width: 100%; padding: 8px; border-radius: 5px; border: 1px solid #ccc;">
+                            <option value="standard">רגיל (כתיבת המילה המלאה לפי שמיעה)</option>
+                            <option value="challenge">אתגר אות ראשונה ואחרונה (האמצע גלוי)</option>
+                            <option value="translation">מבחן תרגום (שמיעת מילה באנגלית וכתיבת הפירוש בעברית)</option>
+                        </select>
                     </div>
 
                     <textarea id="dictation-words" placeholder="הכנס מילים בשורות נפרדות, עם או בלי מספור&#10;לדוגמה:&#10;1. apple - תפוח&#10;2. cat - חתול" rows="5" required></textarea>
-                    <small style="display: block; color: #636e72; margin-bottom: 10px;">טיפ באנגלית: ניתן להוסיף תרגום עברית אחרי מקף (-) או פסיק, לדוגמה: `cat - חתול`</small>
+                    <small style="display: block; color: #636e72; margin-bottom: 10px;">טיפ: הוסף תרגום עברית אחרי מקף (-) או פסיק, לדוגמה: `cat - חתול`</small>
                     <button type="submit" class="btn primary-btn">שמור הכתבה 💾</button>
                 </form>
             </div>
@@ -100,14 +102,14 @@
                 </div>
                 <p id="practice-word-counter">מילה 1 מתוך 5</p>
 
-                <!-- רמז תרגום לעברית אם קיים -->
+                <!-- רמז תרגום / הנחיה -->
                 <div id="translation-hint-box" style="font-size: 18px; color: #e17055; font-weight: bold; margin: 10px 0; display: none;">
-                    תרגום: <span id="translation-text"></span>
+                    תרגום מבוקש: <span id="translation-text"></span>
                 </div>
 
                 <!-- רמז מצב אתגר -->
                 <div id="challenge-hint-box" style="font-size: 20px; color: #0984e3; font-weight: bold; margin: 10px 0; display: none;">
-                    רמז: <span id="challenge-hint-text"></span>
+                    רמז מבנה: <span id="challenge-hint-text"></span>
                 </div>
 
                 <div class="audio-controls">
@@ -116,7 +118,7 @@
                 </div>
 
                 <div class="input-area">
-                    <input type="text" id="user-typed-word" placeholder="הקלד את המילה כאן..." autocomplete="off">
+                    <input type="text" id="user-typed-word" placeholder="הקלד את התשובה כאן..." autocomplete="off">
                     <button id="submit-word-btn" class="btn success-btn">בדוק 🎯</button>
                 </div>
                 <p id="feedback-message"></p>
@@ -131,6 +133,7 @@
             <p id="final-score-text" class="big-text"></p>
             <div id="mistakes-review" class="mistakes-box"></div>
             <button id="restart-practice-btn" class="btn primary-btn">תרגל שוב 🔄</button>
+            <button id="practice-mistakes-only-btn" class="btn warning-btn" style="display: none;">תרגל רק על המילים שטעית בהן 💡</button>
             <button id="finish-practice-btn" class="btn secondary-btn">חזרה לתפריט הראשי 🏠</button>
         </div>
     </div>
