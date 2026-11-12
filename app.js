@@ -1,4 +1,3 @@
-// מצב האפליקציה בזיכרון המקומי
 let appData = JSON.parse(localStorage.getItem('spellingAppData')) || {
     user: null,
     children: [],
@@ -76,19 +75,6 @@ document.addEventListener('DOMContentLoaded', () => {
     const backBtn2 = document.getElementById('back-to-profiles-from-practice');
     if (backBtn2) backBtn2.addEventListener('click', () => showScreen('profile-screen'));
 
-    const langSelect = document.getElementById('dictation-lang');
-    const challengeOptionDiv = document.getElementById('english-challenge-option');
-    if (langSelect && challengeOptionDiv) {
-        langSelect.addEventListener('change', (e) => {
-            if (e.target.value === 'en') {
-                challengeOptionDiv.style.display = 'block';
-            } else {
-                challengeOptionDiv.style.display = 'none';
-                document.getElementById('challenge-mode-checkbox').checked = false;
-            }
-        });
-    }
-
     const dictForm = document.getElementById('add-dictation-form');
     if (dictForm) {
         dictForm.addEventListener('submit', (e) => {
@@ -97,7 +83,7 @@ document.addEventListener('DOMContentLoaded', () => {
             const lang = document.getElementById('dictation-lang').value;
             const date = document.getElementById('dictation-date').value;
             const wordsRaw = document.getElementById('dictation-words').value;
-            const isChallengeMode = document.getElementById('challenge-mode-checkbox').checked;
+            const practiceMode = document.getElementById('practice-mode-select').value;
 
             const words = wordsRaw.split(/\r?\n/).map(line => {
                 let cleanLine = line.replace(/^[\d\-\.\)]+\s*/, '').trim();
@@ -137,7 +123,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     dict.lang = lang;
                     dict.date = date;
                     dict.words = words;
-                    dict.isChallengeMode = isChallengeMode;
+                    dict.practiceMode = practiceMode;
                 }
                 editingDictId = null;
                 const submitBtn = dictForm.querySelector('button[type="submit"]');
@@ -146,7 +132,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 appData.dictations[currentChild.id].push({
                     id: 'dict_' + Date.now(),
                     title, lang, date, words,
-                    isChallengeMode,
+                    practiceMode,
                     attempts: 0,
                     lastCategory: 'טרם נוסה',
                     historyMistakes: []
@@ -155,7 +141,6 @@ document.addEventListener('DOMContentLoaded', () => {
 
             localStorage.setItem('spellingAppData', JSON.stringify(appData));
             dictForm.reset();
-            if (challengeOptionDiv) challengeOptionDiv.style.display = 'none';
             renderDictationsList();
         });
     }
@@ -209,6 +194,11 @@ document.addEventListener('DOMContentLoaded', () => {
         restartBtn.addEventListener('click', () => {
             if (currentDictation) startPractice(currentDictation.id);
         });
+    }
+
+    const practiceMistakesBtn = document.getElementById('practice-mistakes-only-btn');
+    if (practiceMistakesBtn) {
+        practiceMistakesBtn.addEventListener('click', startPracticeMistakesOnly);
     }
 
     const finishBtn = document.getElementById('finish-practice-btn');
@@ -266,12 +256,14 @@ function renderDictationsList(filterDate = null) {
             ? dict.historyMistakes.join(', ') 
             : 'אין טעויות שמורות עדיין 🌟';
 
-        const challengeBadge = dict.isChallengeMode ? '🎯 (מצב אתגר: השלמת אות ראשונה ואחרונה)' : '';
+        let modeName = 'רגיל';
+        if (dict.practiceMode === 'challenge') modeName = 'אתגר אות ראשונה ואחרונה';
+        if (dict.practiceMode === 'translation') modeName = 'מבחן תרגום לאנגלית/עברית';
 
         const item = document.createElement('div');
         item.className = 'card';
         item.innerHTML = `
-            <h4>${dict.title} (${dict.lang === 'he' ? 'עברית' : 'אנגלית'}) ${challengeBadge}</h4>
+            <h4>${dict.title} (${dict.lang === 'he' ? 'עברית' : 'אנגלית'}) [${modeName}]</h4>
             <p>תאריך: <b>${dict.date}</b> | מספר מילים: ${dict.words.length}</p>
             <p>📊 מספר ניסיונות: <b>${attempts}</b> | סטטוס אחרון: <b>${status}</b></p>
             <p style="font-size: 14px; color: #d63031;">❌ מילים שגויות מניסיונות קודמים: <b>${historyMistakes}</b></p>
@@ -290,21 +282,10 @@ window.editDictation = function(dictId) {
     document.getElementById('dictation-title').value = dict.title;
     document.getElementById('dictation-lang').value = dict.lang;
     document.getElementById('dictation-date').value = dict.date;
+    document.getElementById('practice-mode-select').value = dict.practiceMode || 'standard';
     
     const formattedWords = dict.words.map(item => item.translation ? `${item.word} - ${item.translation}` : item.word).join('\n');
     document.getElementById('dictation-words').value = formattedWords;
-
-    const langSelect = document.getElementById('dictation-lang');
-    const challengeOptionDiv = document.getElementById('english-challenge-option');
-    const challengeCheckbox = document.getElementById('challenge-mode-checkbox');
-
-    if (dict.lang === 'en') {
-        challengeOptionDiv.style.display = 'block';
-        challengeCheckbox.checked = !!dict.isChallengeMode;
-    } else {
-        challengeOptionDiv.style.display = 'none';
-        challengeCheckbox.checked = false;
-    }
 
     editingDictId = dict.id;
     const submitBtn = document.querySelector('#add-dictation-form button[type="submit"]');
@@ -345,6 +326,27 @@ window.startPractice = function(dictId) {
     speakCurrentWord();
 };
 
+// תרגול ממוקד אך ורק על המילים שהילד טעה בהן בעבר
+function startPracticeMistakesOnly() {
+    if (!currentDictation || !currentDictation.historyMistakes || currentDictation.historyMistakes.length === 0) return;
+    
+    const mistakeWordsObjects = currentDictation.words.filter(w => currentDictation.historyMistakes.includes(w.word));
+    
+    currentDictation = {
+        ...currentDictation,
+        words: shuffleArray(mistakeWordsObjects)
+    };
+
+    currentWordIndex = 0;
+    userMistakes = [];
+
+    const titleDisplay = document.getElementById('practice-title-display');
+    if (titleDisplay) titleDisplay.innerText = `תרגול חיזוק טעויות: ${currentDictation.title}`;
+    showScreen('practice-screen');
+    setupCurrentWordUI();
+    speakCurrentWord();
+}
+
 function setupCurrentWordUI() {
     const currentItem = currentDictation.words[currentWordIndex];
     const translationBox = document.getElementById('translation-hint-box');
@@ -355,22 +357,28 @@ function setupCurrentWordUI() {
 
     inputField.value = '';
 
-    if (currentItem.translation) {
-        translationBox.style.display = 'block';
-        translationText.innerText = currentItem.translation;
-    } else {
-        translationBox.style.display = 'none';
-    }
+    const mode = currentDictation.practiceMode || 'standard';
 
-    // מצב אתגר הפוך: האמצע גלוי, והילד צריך להקליד את האות הראשונה והאחרונה (או את שתי האותיות יחד)
-    if (currentDictation.isChallengeMode && currentItem.word.length > 2) {
+    if (mode === 'translation') {
+        // מצב מבחן תרגום: הילד שומע באנגלית, רואה רמז קטן שזו שאלת תרגום, ומקליד בעברית
+        translationBox.style.display = 'block';
+        translationText.innerText = 'שמע את המילה באנגלית והקלד את הפירוש בעברית!';
+        challengeBox.style.display = 'none';
+        inputField.placeholder = "הקלד את הפירוש בעברית...";
+    } else if (mode === 'challenge' && currentItem.word.length > 2) {
+        // מצב אתגר: האמצע גלוי, משלימים אות ראשונה ואחרונה
+        translationBox.style.display = currentItem.translation ? 'block' : 'none';
+        if (currentItem.translation) translationText.innerText = currentItem.translation;
+        
         challengeBox.style.display = 'block';
         const word = currentItem.word;
         const middlePart = word.substring(1, word.length - 1);
-        // מציגים _ עבור האות הראשונה והאחרונה, ובאמצע את האותיות המלאות
-        challengeText.innerText = `_  ${middlePart}  _  (השלם את האות הראשונה והאחרונה)`;
-        inputField.placeholder = "הקלד את שתי האותיות (ראשונה ואחרונה) או את המילה המלאה...";
+        challengeText.innerText = `_  ${middlePart}  _  (השלם אות ראשונה ואחרונה)`;
+        inputField.placeholder = "הקלד אות ראשונה ואחרונה...";
     } else {
+        // מצב רגיל
+        translationBox.style.display = currentItem.translation ? 'block' : 'none';
+        if (currentItem.translation) translationText.innerText = currentItem.translation;
         challengeBox.style.display = 'none';
         inputField.placeholder = "הקלד את המילה כאן...";
     }
@@ -381,6 +389,7 @@ function speakCurrentWord() {
     const currentItem = currentDictation.words[currentWordIndex];
     if (synth && currentItem) {
         synth.cancel();
+        // תמיד מקקריאים את המילה באנגלית/עברית לפי הגדרת ההכתבה
         const utterance = new SpeechSynthesisUtterance(currentItem.word);
         utterance.lang = currentDictation.lang === 'he' ? 'he-IL' : 'en-US';
         
@@ -413,23 +422,27 @@ function checkTypedWord() {
     }
 
     const currentItem = currentDictation.words[currentWordIndex];
-    const targetWord = currentItem.word;
-
+    const mode = currentDictation.practiceMode || 'standard';
     let isCorrect = false;
+    let expectedDisplayValue = currentItem.word;
 
-    if (currentDictation.isChallengeMode && targetWord.length > 2) {
-        const firstLetter = targetWord[0].toLowerCase();
-        const lastLetter = targetWord[targetWord.length - 1].toLowerCase();
-        
-        // הילד יכול להקליד את שתי האותיות יחד (למשל "ae" עבור apple) או את המילה המלאה
+    if (mode === 'translation') {
+        // בדיקת תרגום בעברית מול הפירוש שהוזן במילה (למשל apple - תפוח -> הילד צריך להקליד תפוח)
+        expectedDisplayValue = currentItem.translation || currentItem.word;
+        if (typedValue.toLowerCase() === expectedDisplayValue.toLowerCase()) {
+            isCorrect = true;
+        }
+    } else if (mode === 'challenge' && currentItem.word.length > 2) {
+        const firstLetter = currentItem.word[0].toLowerCase();
+        const lastLetter = currentItem.word[currentItem.word.length - 1].toLowerCase();
         const typedClean = typedValue.toLowerCase().replace(/\s+/g, '');
         const expectedPair = firstLetter + lastLetter;
 
-        if (typedClean === expectedPair || typedClean === targetWord.toLowerCase()) {
+        if (typedClean === expectedPair || typedClean === currentItem.word.toLowerCase()) {
             isCorrect = true;
         }
     } else {
-        if (typedValue.toLowerCase() === targetWord.toLowerCase()) {
+        if (typedValue.toLowerCase() === currentItem.word.toLowerCase()) {
             isCorrect = true;
         }
     }
@@ -441,10 +454,10 @@ function checkTypedWord() {
         }
     } else {
         if (feedback) {
-            feedback.innerText = `❌ טעות. המילה הנכונה היא: ${targetWord}`;
+            feedback.innerText = `❌ טעות. התשובה הנכונה היא: ${expectedDisplayValue}`;
             feedback.style.color = '#e84393';
         }
-        userMistakes.push({ target: targetWord, typed: typedValue });
+        userMistakes.push({ target: currentItem.word, typed: typedValue });
     }
 
     inputField.value = '';
@@ -512,13 +525,17 @@ function showResults() {
     }
 
     const mistakesBox = document.getElementById('mistakes-review');
+    const practiceMistakesBtn = document.getElementById('practice-mistakes-only-btn');
+
     if (mistakesBox) {
         if (userMistakes.length > 0) {
             mistakesBox.innerHTML = '<h4>מילים שכדאי לחזק מהתרגול הנוכחי:</h4>' + userMistakes.map(m => `
                 <p>מילה: <b>${m.target}</b> (הקלדת: ${m.typed})</p>
             `).join('');
+            if (practiceMistakesBtn) practiceMistakesBtn.style.display = 'inline-block';
         } else {
             mistakesBox.innerHTML = '<p>✨ אין טעויות בכלל בתרגול הזה!</p>';
+            if (practiceMistakesBtn) practiceMistakesBtn.style.display = 'none';
         }
     }
 }
