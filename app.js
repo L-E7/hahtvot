@@ -1,3 +1,4 @@
+// מצב האפליקציה בזיכרון המקומי
 let appData = JSON.parse(localStorage.getItem('spellingAppData')) || {
     user: null,
     children: [],
@@ -23,13 +24,54 @@ if (synth && 'onvoiceschanged' in synth) {
     synth.onvoiceschanged = populateVoices;
 }
 
-document.addEventListener('DOMContentLoaded', () => {
-    window.showScreen = function(screenId) {
-        document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
-        const target = document.getElementById(screenId);
-        if (target) target.classList.add('active');
-    };
+// פונקציית מעבר מסכים גלובלית ובטוחה
+window.showScreen = function(screenId) {
+    document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+    const target = document.getElementById(screenId);
+    if (target) {
+        target.classList.add('active');
+    } else {
+        console.error('Screen not found:', screenId);
+    }
+};
 
+function saveAndRenderProfiles() {
+    localStorage.setItem('spellingAppData', JSON.stringify(appData));
+    showScreen('profile-screen');
+    renderProfiles();
+}
+
+function renderProfiles() {
+    const container = document.getElementById('profiles-container');
+    if (!container) return;
+    container.innerHTML = '';
+    
+    if (!appData.children || appData.children.length === 0) {
+        container.innerHTML = '<p style="text-align: center; color: #636e72; grid-column: 1 / -1;">אין עדיין פרופילים. הוסף ילד למטה 👇</p>';
+        return;
+    }
+
+    appData.children.forEach(child => {
+        const card = document.createElement('div');
+        card.className = 'profile-card';
+        card.innerHTML = `<h3>👤 ${child.name}</h3>`;
+        card.addEventListener('click', () => {
+            currentChild = child;
+            openParentOrPractice();
+        });
+        container.appendChild(card);
+    });
+}
+
+function openParentOrPractice() {
+    const nameSpan = document.getElementById('current-managing-child');
+    if (nameSpan && currentChild) nameSpan.innerText = currentChild.name;
+    renderDictationsList();
+    showScreen('parent-screen');
+}
+
+document.addEventListener('DOMContentLoaded', () => {
+    // כפתורי התחברות עם הגנה בפני אלמנטים חסרים
     const guestBtn = document.getElementById('guest-login-btn');
     if (guestBtn) {
         guestBtn.addEventListener('click', () => {
@@ -112,6 +154,8 @@ document.addEventListener('DOMContentLoaded', () => {
                 return alert('נא להכניס לפחות מילה אחת בשורה');
             }
 
+            if (!currentChild) return alert('נא לבחור פרופיל ילד תחילה');
+
             if (!appData.dictations[currentChild.id]) {
                 appData.dictations[currentChild.id] = [];
             }
@@ -168,14 +212,18 @@ document.addEventListener('DOMContentLoaded', () => {
     const fallbackBtn = document.getElementById('fallback-audio-btn');
     if (fallbackBtn) {
         fallbackBtn.addEventListener('click', () => {
-            const ctx = new (window.AudioContext || window.webkitAudioContext)();
-            const osc = ctx.createOscillator();
-            const gain = ctx.createGain();
-            osc.connect(gain);
-            gain.connect(ctx.destination);
-            osc.frequency.value = 587.33;
-            osc.start();
-            setTimeout(() => osc.stop(), 200);
+            try {
+                const ctx = new (window.AudioContext || window.webkitAudioContext)();
+                const osc = ctx.createOscillator();
+                const gain = ctx.createGain();
+                osc.connect(gain);
+                gain.connect(ctx.destination);
+                osc.frequency.value = 587.33;
+                osc.start();
+                setTimeout(() => osc.stop(), 200);
+            } catch (err) {
+                console.error(err);
+            }
         });
     }
 
@@ -204,35 +252,6 @@ document.addEventListener('DOMContentLoaded', () => {
     const finishBtn = document.getElementById('finish-practice-btn');
     if (finishBtn) finishBtn.addEventListener('click', () => showScreen('profile-screen'));
 });
-
-function saveAndRenderProfiles() {
-    localStorage.setItem('spellingAppData', JSON.stringify(appData));
-    showScreen('profile-screen');
-    renderProfiles();
-}
-
-function renderProfiles() {
-    const container = document.getElementById('profiles-container');
-    if (!container) return;
-    container.innerHTML = '';
-    appData.children.forEach(child => {
-        const card = document.createElement('div');
-        card.className = 'profile-card';
-        card.innerHTML = `<h3>👤 ${child.name}</h3>`;
-        card.addEventListener('click', () => {
-            currentChild = child;
-            openParentOrPractice();
-        });
-        container.appendChild(card);
-    });
-}
-
-function openParentOrPractice() {
-    const nameSpan = document.getElementById('current-managing-child');
-    if (nameSpan && currentChild) nameSpan.innerText = currentChild.name;
-    renderDictationsList();
-    showScreen('parent-screen');
-}
 
 function renderDictationsList(filterDate = null) {
     const listContainer = document.getElementById('existing-dictations-list');
@@ -267,22 +286,24 @@ function renderDictationsList(filterDate = null) {
             <p>תאריך: <b>${dict.date}</b> | מספר מילים: ${dict.words.length}</p>
             <p>📊 מספר ניסיונות: <b>${attempts}</b> | סטטוס אחרון: <b>${status}</b></p>
             <p style="font-size: 14px; color: #d63031;">❌ מילים שגויות מניסיונות קודמים: <b>${historyMistakes}</b></p>
-            <button class="btn success-btn" onclick="startPractice('${dict.id}')">התחל תרגול 🎯</button>
-            <button class="btn secondary-btn" onclick="editDictation('${dict.id}')">ערוך ✏️</button>
+            <button class="btn success-btn" onclick="window.startPractice('${dict.id}')">התחל תרגול 🎯</button>
+            <button class="btn secondary-btn" onclick="window.editDictation('${dict.id}')">ערוך ✏️</button>
         `;
         listContainer.appendChild(item);
     });
 }
 
 window.editDictation = function(dictId) {
-    const dicts = appData.dictations[currentChild.id];
+    if (!currentChild) return;
+    const dicts = appData.dictations[currentChild.id] || [];
     const dict = dicts.find(d => d.id === dictId);
     if (!dict) return;
 
     document.getElementById('dictation-title').value = dict.title;
     document.getElementById('dictation-lang').value = dict.lang;
     document.getElementById('dictation-date').value = dict.date;
-    document.getElementById('practice-mode-select').value = dict.practiceMode || 'standard';
+    const modeSelect = document.getElementById('practice-mode-select');
+    if (modeSelect) modeSelect.value = dict.practiceMode || 'standard';
     
     const formattedWords = dict.words.map(item => item.translation ? `${item.word} - ${item.translation}` : item.word).join('\n');
     document.getElementById('dictation-words').value = formattedWords;
@@ -304,7 +325,7 @@ function shuffleArray(array) {
 
 window.startPractice = function(dictId) {
     if (!currentChild) return;
-    const dicts = appData.dictations[currentChild.id];
+    const dicts = appData.dictations[currentChild.id] || [];
     const originalDict = dicts.find(d => d.id === dictId);
     if (!originalDict) return;
 
@@ -326,7 +347,6 @@ window.startPractice = function(dictId) {
     speakCurrentWord();
 };
 
-// תרגול ממוקד אך ורק על המילים שהילד טעה בהן בעבר
 function startPracticeMistakesOnly() {
     if (!currentDictation || !currentDictation.historyMistakes || currentDictation.historyMistakes.length === 0) return;
     
@@ -355,31 +375,29 @@ function setupCurrentWordUI() {
     const challengeText = document.getElementById('challenge-hint-text');
     const inputField = document.getElementById('user-typed-word');
 
+    if (!inputField || !currentItem) return;
     inputField.value = '';
 
     const mode = currentDictation.practiceMode || 'standard';
 
     if (mode === 'translation') {
-        // מצב מבחן תרגום: הילד שומע באנגלית, רואה רמז קטן שזו שאלת תרגום, ומקליד בעברית
-        translationBox.style.display = 'block';
-        translationText.innerText = 'שמע את המילה באנגלית והקלד את הפירוש בעברית!';
-        challengeBox.style.display = 'none';
+        if (translationBox) translationBox.style.display = 'block';
+        if (translationText) translationText.innerText = 'שמע את המילה באנגלית והקלד את הפירוש בעברית!';
+        if (challengeBox) challengeBox.style.display = 'none';
         inputField.placeholder = "הקלד את הפירוש בעברית...";
     } else if (mode === 'challenge' && currentItem.word.length > 2) {
-        // מצב אתגר: האמצע גלוי, משלימים אות ראשונה ואחרונה
-        translationBox.style.display = currentItem.translation ? 'block' : 'none';
-        if (currentItem.translation) translationText.innerText = currentItem.translation;
+        if (translationBox) translationBox.style.display = currentItem.translation ? 'block' : 'none';
+        if (currentItem.translation && translationText) translationText.innerText = currentItem.translation;
         
-        challengeBox.style.display = 'block';
+        if (challengeBox) challengeBox.style.display = 'block';
         const word = currentItem.word;
         const middlePart = word.substring(1, word.length - 1);
-        challengeText.innerText = `_  ${middlePart}  _  (השלם אות ראשונה ואחרונה)`;
+        if (challengeText) challengeText.innerText = `_  ${middlePart}  _  (השלם אות ראשונה ואחרונה)`;
         inputField.placeholder = "הקלד אות ראשונה ואחרונה...";
     } else {
-        // מצב רגיל
-        translationBox.style.display = currentItem.translation ? 'block' : 'none';
-        if (currentItem.translation) translationText.innerText = currentItem.translation;
-        challengeBox.style.display = 'none';
+        if (translationBox) translationBox.style.display = currentItem.translation ? 'block' : 'none';
+        if (currentItem.translation && translationText) translationText.innerText = currentItem.translation;
+        if (challengeBox) challengeBox.style.display = 'none';
         inputField.placeholder = "הקלד את המילה כאן...";
     }
 }
@@ -389,7 +407,6 @@ function speakCurrentWord() {
     const currentItem = currentDictation.words[currentWordIndex];
     if (synth && currentItem) {
         synth.cancel();
-        // תמיד מקקריאים את המילה באנגלית/עברית לפי הגדרת ההכתבה
         const utterance = new SpeechSynthesisUtterance(currentItem.word);
         utterance.lang = currentDictation.lang === 'he' ? 'he-IL' : 'en-US';
         
@@ -402,7 +419,7 @@ function speakCurrentWord() {
             utterance.voice = targetVoice;
         }
 
-        utterance.rate = 0.9;
+        utterance.rate = 0.65;
         synth.speak(utterance);
     }
 }
@@ -427,7 +444,6 @@ function checkTypedWord() {
     let expectedDisplayValue = currentItem.word;
 
     if (mode === 'translation') {
-        // בדיקת תרגום בעברית מול הפירוש שהוזן במילה (למשל apple - תפוח -> הילד צריך להקליד תפוח)
         expectedDisplayValue = currentItem.translation || currentItem.word;
         if (typedValue.toLowerCase() === expectedDisplayValue.toLowerCase()) {
             isCorrect = true;
