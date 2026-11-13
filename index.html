@@ -19,7 +19,6 @@
             <h1>🎒 אלופפיצ'ר - עולם ההכתבות</h1>
             <p>תרגול הכתבות חכם וכיפי בעברית ובאנגלית לקראת המבחן של המורה!</p>
             <div class="auth-buttons">
-                <!-- הפעלה ישירה ב-onclick כדי לעקוף בעיות טעינה בנייד -->
                 <button onclick="window.loginAsGoogle()" class="btn primary-btn">כניסה עם חשבון Google 🌐</button>
                 <button onclick="window.loginAsGuest()" class="btn secondary-btn">כניסה כאורח 👤</button>
             </div>
@@ -114,9 +113,28 @@
                     רמז מבנה: <span id="challenge-hint-text"></span>
                 </div>
 
-                <div class="audio-controls">
-                    <button id="speak-word-btn" class="btn primary-btn big-btn">🔊 שמע מילה</button>
-                    <button id="fallback-audio-btn" class="btn warning-btn">🔔 צליל חלופי</button>
+                <!-- פקדי שמע ובחירת מהירות וקול דובר -->
+                <div class="audio-controls" style="display: flex; flex-direction: column; gap: 10px; align-items: center; margin: 15px 0;">
+                    <button id="speak-word-btn" class="btn primary-btn big-btn" style="width: 100%;">🔊 שמע מילה</button>
+                    
+                    <div style="display: flex; gap: 10px; width: 100%; justify-content: center; flex-wrap: wrap;">
+                        <div style="flex: 1; min-width: 130px;">
+                            <label style="font-size: 13px; display: block; margin-bottom: 3px; font-weight: bold;">מהירות הקראה:</label>
+                            <select id="speech-rate-select" style="width: 100%; padding: 6px; border-radius: 5px; border: 1px solid #ccc;">
+                                <option value="0.5">🐢 איטי מאוד (0.5)</option>
+                                <option value="0.75" selected>🚶 איטי וברור (0.75)</option>
+                                <option value="1.0">🏃 רגיל (1.0)</option>
+                            </select>
+                        </div>
+                        <div style="flex: 1; min-width: 130px;">
+                            <label style="font-size: 13px; display: block; margin-bottom: 3px; font-weight: bold;">סוג קול (דובר/ה):</label>
+                            <select id="speech-voice-select" style="width: 100%; padding: 6px; border-radius: 5px; border: 1px solid #ccc;">
+                                <option value="auto">אוቶמטי (ברירת מחדל)</option>
+                                <option value="female">קול אישה 👩</option>
+                                <option value="male">קול גבר 👨</option>
+                            </select>
+                        </div>
+                    </div>
                 </div>
 
                 <div class="input-area">
