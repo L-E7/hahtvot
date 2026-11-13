@@ -19,8 +19,9 @@
             <h1>🎒 אלופפיצ'ר - עולם ההכתבות</h1>
             <p>תרגול הכתבות חכם וכיפי בעברית ובאנגלית לקראת המבחן של המורה!</p>
             <div class="auth-buttons">
-                <button id="google-login-btn" class="btn primary-btn">כניסה עם חשבון Google 🌐</button>
-                <button id="guest-login-btn" class="btn secondary-btn">כניסה כאורח 👤</button>
+                <!-- הפעלה ישירה ב-onclick כדי לעקוף בעיות טעינה בנייד -->
+                <button onclick="window.loginAsGoogle()" class="btn primary-btn">כניסה עם חשבון Google 🌐</button>
+                <button onclick="window.loginAsGuest()" class="btn secondary-btn">כניסה כאורח 👤</button>
             </div>
         </div>
     </div>
@@ -67,7 +68,6 @@
                     </select>
                     <input type="date" id="dictation-date" required>
                     
-                    <!-- בחירת מצב תרגול מיוחד -->
                     <div style="margin: 15px 0; text-align: right; background: #f1f2f6; padding: 10px; border-radius: 8px;">
                         <label style="display: block; font-weight: bold; margin-bottom: 5px; color: #2d3436;">בחר סגנון תרגול להכתבה זו:</label>
                         <select id="practice-mode-select" style="width: 100%; padding: 8px; border-radius: 5px; border: 1px solid #ccc;">
@@ -88,4 +88,58 @@
                 <div class="calendar-filter-box" style="margin-bottom: 15px; display: flex; gap: 10px; justify-content: center; align-items: center; flex-wrap: wrap;">
                     <input type="date" id="calendar-date-picker" style="width: auto;">
                     <button id="filter-by-date-btn" class="btn primary-btn" style="padding: 10px 15px; font-size: 14px; margin: 0;">הצג לתאריך 🔍</button>
-                    <button id="show-all-dictations-btn" class="btn secondary-btn" style="padding: 10px 15px; font-
+                    <button id="show-all-dictations-btn" class="btn secondary-btn" style="padding: 10px 15px; font-size: 14px; margin: 0;">הצג הכל 📋</button>
+                </div>
+                <div id="existing-dictations-list"></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- מסך תרגול הכתבה לילד -->
+    <div id="practice-screen" class="screen">
+        <div class="container">
+            <button id="back-to-profiles-from-practice" class="btn secondary-btn">⬅ יציאה</button>
+            <div class="practice-box card">
+                <h2 id="practice-title-display">תרגול הכתבה</h2>
+                <div class="progress-bar-container">
+                    <div id="progress-bar" style="width: 0%;"></div>
+                </div>
+                <p id="practice-word-counter">מילה 1 מתוך 5</p>
+
+                <div id="translation-hint-box" style="font-size: 18px; color: #e17055; font-weight: bold; margin: 10px 0; display: none;">
+                    תרגום מבוקש: <span id="translation-text"></span>
+                </div>
+
+                <div id="challenge-hint-box" style="font-size: 20px; color: #0984e3; font-weight: bold; margin: 10px 0; display: none;">
+                    רמז מבנה: <span id="challenge-hint-text"></span>
+                </div>
+
+                <div class="audio-controls">
+                    <button id="speak-word-btn" class="btn primary-btn big-btn">🔊 שמע מילה</button>
+                    <button id="fallback-audio-btn" class="btn warning-btn">🔔 צליל חלופי</button>
+                </div>
+
+                <div class="input-area">
+                    <input type="text" id="user-typed-word" placeholder="הקלד את התשובה כאן..." autocomplete="off">
+                    <button id="submit-word-btn" class="btn success-btn">בדוק 🎯</button>
+                </div>
+                <p id="feedback-message"></p>
+            </div>
+        </div>
+    </div>
+
+    <!-- מסך סיכום וציונים -->
+    <div id="results-screen" class="screen">
+        <div class="container card text-center">
+            <h2>🎉 כל הכבוד! סיימת את ההכתבה!</h2>
+            <p id="final-score-text" class="big-text"></p>
+            <div id="mistakes-review" class="mistakes-box"></div>
+            <button id="restart-practice-btn" class="btn primary-btn">תרגל שוב 🔄</button>
+            <button id="practice-mistakes-only-btn" class="btn warning-btn" style="display: none;">תרגל רק על המילים שטעית בהן 💡</button>
+            <button id="finish-practice-btn" class="btn secondary-btn">חזרה לתפריט הראשי 🏠</button>
+        </div>
+    </div>
+
+    <script src="app.js"></script>
+</body>
+</html>
