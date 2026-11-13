@@ -23,7 +23,6 @@ if (synth && 'onvoiceschanged' in synth) {
     synth.onvoiceschanged = populateVoices;
 }
 
-// פונקציות התחברות גלובליות וישירות
 window.loginAsGuest = function() {
     appData.user = { name: 'הורה / משתמש', email: 'user@app.com' };
     saveAndRenderProfiles();
@@ -198,24 +197,6 @@ document.addEventListener('DOMContentLoaded', () => {
 
     const speakBtn = document.getElementById('speak-word-btn');
     if (speakBtn) speakBtn.addEventListener('click', speakCurrentWord);
-
-    const fallbackBtn = document.getElementById('fallback-audio-btn');
-    if (fallbackBtn) {
-        fallbackBtn.addEventListener('click', () => {
-            try {
-                const ctx = new (window.AudioContext || window.webkitAudioContext)();
-                const osc = ctx.createOscillator();
-                const gain = ctx.createGain();
-                osc.connect(gain);
-                gain.connect(ctx.destination);
-                osc.frequency.value = 587.33;
-                osc.start();
-                setTimeout(() => osc.stop(), 200);
-            } catch (err) {
-                console.error(err);
-            }
-        });
-    }
 
     const submitWordBtn = document.getElementById('submit-word-btn');
     if (submitWordBtn) submitWordBtn.addEventListener('click', checkTypedWord);
@@ -403,13 +384,30 @@ function speakCurrentWord() {
         if (voices.length === 0) {
             voices = synth.getVoices();
         }
+
         const langPrefix = currentDictation.lang === 'he' ? 'he' : 'en';
-        const targetVoice = voices.find(v => v.lang.startsWith(langPrefix));
-        if (targetVoice) {
-            utterance.voice = targetVoice;
+        const availableVoices = voices.filter(v => v.lang.startsWith(langPrefix));
+
+        // בחירת קול לפי קול אישה / גבר אם נבחר
+        const voiceTypeSelect = document.getElementById('speech-voice-select');
+        const voiceType = voiceTypeSelect ? voiceTypeSelect.value : 'auto';
+
+        if (availableVoices.length > 0) {
+            let chosenVoice = availableVoices[0];
+            if (voiceType === 'female') {
+                const femaleVoice = availableVoices.find(v => v.name.toLowerCase().includes('female') || v.name.toLowerCase().includes('zira') || v.name.toLowerCase().includes('susan') || v.name.toLowerCase().includes('google uk english female') || v.name.toLowerCase().includes('google us english'));
+                if (femaleVoice) chosenVoice = femaleVoice;
+            } else if (voiceType === 'male') {
+                const maleVoice = availableVoices.find(v => v.name.toLowerCase().includes('male') || v.name.toLowerCase().includes('david') || v.name.toLowerCase().includes('george') || v.name.toLowerCase().includes('google uk english male'));
+                if (maleVoice) chosenVoice = maleVoice;
+            }
+            utterance.voice = chosenVoice;
         }
 
-        utterance.rate = 0.65;
+        // קריאת המהירות מתוך תיבת הבחירה החדשה
+        const rateSelect = document.getElementById('speech-rate-select');
+        utterance.rate = rateSelect ? parseFloat(rateSelect.value) : 0.75;
+
         synth.speak(utterance);
     }
 }
