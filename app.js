@@ -1,4 +1,3 @@
-// מצב האפליקציה בזיכרון המקומי
 let appData = JSON.parse(localStorage.getItem('spellingAppData')) || {
     user: null,
     children: [],
@@ -24,14 +23,22 @@ if (synth && 'onvoiceschanged' in synth) {
     synth.onvoiceschanged = populateVoices;
 }
 
-// פונקציית מעבר מסכים גלובלית ובטוחה
+// פונקציות התחברות גלובליות וישירות
+window.loginAsGuest = function() {
+    appData.user = { name: 'הורה / משתמש', email: 'user@app.com' };
+    saveAndRenderProfiles();
+};
+
+window.loginAsGoogle = function() {
+    appData.user = { name: 'הורה מחובר', email: 'parent@gmail.com' };
+    saveAndRenderProfiles();
+};
+
 window.showScreen = function(screenId) {
     document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
     const target = document.getElementById(screenId);
     if (target) {
         target.classList.add('active');
-    } else {
-        console.error('Screen not found:', screenId);
     }
 };
 
@@ -71,23 +78,6 @@ function openParentOrPractice() {
 }
 
 document.addEventListener('DOMContentLoaded', () => {
-    // כפתורי התחברות עם הגנה בפני אלמנטים חסרים
-    const guestBtn = document.getElementById('guest-login-btn');
-    if (guestBtn) {
-        guestBtn.addEventListener('click', () => {
-            appData.user = { name: 'הורה / משתמש', email: 'user@app.com' };
-            saveAndRenderProfiles();
-        });
-    }
-
-    const googleBtn = document.getElementById('google-login-btn');
-    if (googleBtn) {
-        googleBtn.addEventListener('click', () => {
-            appData.user = { name: 'הורה מחובר', email: 'parent@gmail.com' };
-            saveAndRenderProfiles();
-        });
-    }
-
     const themeSelect = document.getElementById('theme-select');
     if (themeSelect) {
         themeSelect.addEventListener('change', (e) => {
