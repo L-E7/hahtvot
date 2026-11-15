@@ -60,7 +60,7 @@ function renderProfiles() {
     appData.children.forEach(child => {
         const card = document.createElement('div');
         card.className = 'profile-card';
-        card.innerHTML = `<h3>👤 ${child.name}</h3>`;
+        card.innerHTML = `<h3 style="margin-bottom:0;">👤 ${child.name}</h3>`;
         card.addEventListener('click', () => {
             currentChild = child;
             openParentOrPractice();
@@ -80,7 +80,8 @@ document.addEventListener('DOMContentLoaded', () => {
     const themeSelect = document.getElementById('theme-select');
     if (themeSelect) {
         themeSelect.addEventListener('change', (e) => {
-            document.body.setAttribute('data-theme', e.target.value);
+            const theme = e.target.value;
+            document.body.setAttribute('data-theme', theme);
         });
     }
 
@@ -106,9 +107,10 @@ document.addEventListener('DOMContentLoaded', () => {
     const backBtn2 = document.getElementById('back-to-profiles-from-practice');
     if (backBtn2) backBtn2.addEventListener('click', () => showScreen('profile-screen'));
 
+    // פונקציית שמירת הכתבה עם תרגום אוטומטי חכם מובנה
     const dictForm = document.getElementById('add-dictation-form');
     if (dictForm) {
-        dictForm.addEventListener('submit', (e) => {
+        dictForm.addEventListener('submit', async (e) => {
             e.preventDefault();
             const title = document.getElementById('dictation-title').value;
             const lang = document.getElementById('dictation-lang').value;
@@ -116,34 +118,55 @@ document.addEventListener('DOMContentLoaded', () => {
             const wordsRaw = document.getElementById('dictation-words').value;
             const practiceMode = document.getElementById('practice-mode-select').value;
 
-            const words = wordsRaw.split(/\r?\n/).map(line => {
-                let cleanLine = line.replace(/^[\d\-\.\)]+\s*/, '').trim();
-                if (!cleanLine) return null;
+            const rawLines = wordsRaw.split(/\r?\n/).map(line => line.replace(/^[\d\-\.\)]+\s*/, '').trim()).filter(w => w.length > 0);
 
-                let wordPart = cleanLine;
+            if (rawLines.length === 0) {
+                return alert('נא להכניס לפחות מילה אחת בשורה');
+            }
+
+            // הצגת הודעת טעינה בזמן שהמערכת מתרגמת אוטומטית ברקע
+            const submitBtn = dictForm.querySelector('button[type="submit"]');
+            const originalBtnText = submitBtn.innerText;
+            submitBtn.innerText = 'מבצע תרגום אוטומטי חכם... ⏳';
+            submitBtn.disabled = true;
+
+            const processedWords = [];
+
+            for (let line of rawLines) {
+                let wordPart = line;
                 let translationPart = '';
 
-                if (cleanLine.includes('-')) {
-                    const parts = cleanLine.split('-');
+                if (line.includes('-')) {
+                    const parts = line.split('-');
                     wordPart = parts[0].trim();
                     translationPart = parts.slice(1).join('-').trim();
-                } else if (cleanLine.includes(',')) {
-                    const parts = cleanLine.split(',');
+                } else if (line.includes(',')) {
+                    const parts = line.split(',');
                     wordPart = parts[0].trim();
                     translationPart = parts.slice(1).join(',').trim();
                 }
 
-                return {
-                    word: wordPart,
-                    translation: translationPart
-                };
-            }).filter(item => item !== null && item.word.length > 0);
+                // אם אין תרגום ידני וההכתבה באנגלית, נשתמש בתרגום אוטומטי חינמי
+                if (!translationPart && lang === 'en') {
+                    try {
+                        const res = await fetch(`https://api.mymemory.translated.net/get?q=${encodeURIComponent(wordPart)}&langpair=en|he`);
+                        const data = await res.json();
+                        if (data && data.responseData && data.responseData.translatedText) {
+                            translationPart = data.responseData.translatedText;
+                        }
+                    } catch (err) {
+                        console.error('Translation error:', err);
+                    }
+                }
 
-            if (words.length === 0) {
-                return alert('נא להכניס לפחות מילה אחת בשורה');
+                processedWords.push({
+                    word: wordPart,
+                    translation: translationPart || wordPart
+                });
             }
 
-            if (!currentChild) return alert('נא לבחור פרופיל ילד תחילה');
+            submitBtn.innerText = originalBtnText;
+            submitBtn.disabled = false;
 
             if (!appData.dictations[currentChild.id]) {
                 appData.dictations[currentChild.id] = [];
@@ -155,16 +178,16 @@ document.addEventListener('DOMContentLoaded', () => {
                     dict.title = title;
                     dict.lang = lang;
                     dict.date = date;
-                    dict.words = words;
+                    dict.words = processedWords;
                     dict.practiceMode = practiceMode;
                 }
                 editingDictId = null;
-                const submitBtn = dictForm.querySelector('button[type="submit"]');
-                if (submitBtn) submitBtn.innerText = 'שמור הכתבה 💾';
+                submitBtn.innerText = 'שמור הכתבה בזיכרון 💾';
             } else {
                 appData.dictations[currentChild.id].push({
                     id: 'dict_' + Date.now(),
-                    title, lang, date, words,
+                    title, lang, date,
+                    words: processedWords,
                     practiceMode,
                     attempts: 0,
                     lastCategory: 'טרם נוסה',
@@ -235,7 +258,7 @@ function renderDictationsList(filterDate = null) {
     }
 
     if (dicts.length === 0) {
-        listContainer.innerHTML = '<p>אין הכתבות להצגה עבור בחירה זו.</p>';
+        listContainer.innerHTML = '<p style="text-align: center; color: #636e72;">אין הכתבות להצגה עבור בחירה זו.</p>';
         return;
     }
 
@@ -252,13 +275,16 @@ function renderDictationsList(filterDate = null) {
 
         const item = document.createElement('div');
         item.className = 'card';
+        item.style.padding = '20px';
         item.innerHTML = `
-            <h4>${dict.title} (${dict.lang === 'he' ? 'עברית' : 'אנגלית'}) [${modeName}]</h4>
-            <p>תאריך: <b>${dict.date}</b> | מספר מילים: ${dict.words.length}</p>
-            <p>📊 מספר ניסיונות: <b>${attempts}</b> | סטטוס אחרון: <b>${status}</b></p>
-            <p style="font-size: 14px; color: #d63031;">❌ מילים שגויות מניסיונות קודמים: <b>${historyMistakes}</b></p>
-            <button class="btn success-btn" onclick="window.startPractice('${dict.id}')">התחל תרגול 🎯</button>
-            <button class="btn secondary-btn" onclick="window.editDictation('${dict.id}')">ערוך ✏️</button>
+            <h4 style="color: var(--primary);">${dict.title} (${dict.lang === 'he' ? 'עברית' : 'אנגלית'}) [${modeName}]</h4>
+            <p style="margin-bottom: 8px;">תאריך: <b>${dict.date}</b> | מספר מילים: ${dict.words.length}</p>
+            <p style="margin-bottom: 8px;">📊 מספר ניסיונות: <b>${attempts}</b> | סטטוס אחרון: <b>${status}</b></p>
+            <p style="font-size: 14px; color: #d63031; margin-bottom: 15px;">❌ מילים שגויות: <b>${historyMistakes}</b></p>
+            <div style="display: flex; gap: 10px;">
+                <button class="btn success-btn" style="flex: 2; padding: 10px;" onclick="window.startPractice('${dict.id}')">התחל תרגול 🎯</button>
+                <button class="btn secondary-btn" style="flex: 1; padding: 10px;" onclick="window.editDictation('${dict.id}')">ערוך ✏️</button>
+            </div>
         `;
         listContainer.appendChild(item);
     });
@@ -276,7 +302,7 @@ window.editDictation = function(dictId) {
     const modeSelect = document.getElementById('practice-mode-select');
     if (modeSelect) modeSelect.value = dict.practiceMode || 'standard';
     
-    const formattedWords = dict.words.map(item => item.translation ? `${item.word} - ${item.translation}` : item.word).join('\n');
+    const formattedWords = dict.words.map(item => item.word).join('\n');
     document.getElementById('dictation-words').value = formattedWords;
 
     editingDictId = dict.id;
@@ -358,18 +384,29 @@ function setupCurrentWordUI() {
         inputField.placeholder = "הקלד את הפירוש בעברית...";
     } else if (mode === 'challenge' && currentItem.word.length > 2) {
         if (translationBox) translationBox.style.display = currentItem.translation ? 'block' : 'none';
-        if (currentItem.translation && translationText) translationText.innerText = currentItem.translation;
+        if (currentItem.translation && translationText) translationText.innerText = `פירוש: ${currentItem.translation}`;
         
         if (challengeBox) challengeBox.style.display = 'block';
         const word = currentItem.word;
         const middlePart = word.substring(1, word.length - 1);
-        if (challengeText) challengeText.innerText = `_  ${middlePart}  _  (השלם אות ראשונה ואחרונה)`;
+        if (challengeText) challengeText.innerText = `_  ${middlePart}  _`;
         inputField.placeholder = "הקלד אות ראשונה ואחרונה...";
     } else {
         if (translationBox) translationBox.style.display = currentItem.translation ? 'block' : 'none';
-        if (currentItem.translation && translationText) translationText.innerText = currentItem.translation;
+        if (currentItem.translation && translationText) translationText.innerText = `פירוש: ${currentItem.translation}`;
         if (challengeBox) challengeBox.style.display = 'none';
         inputField.placeholder = "הקלד את המילה כאן...";
+    }
+
+    const counter = document.getElementById('practice-word-counter');
+    if (counter) {
+        counter.innerText = `מילה ${currentWordIndex + 1} מתוך ${currentDictation.words.length}`;
+    }
+
+    const progressBar = document.getElementById('progress-bar');
+    if (progressBar) {
+        const progress = (currentWordIndex / currentDictation.words.length) * 100;
+        progressBar.style.width = `${progress}%`;
     }
 }
 
@@ -379,23 +416,28 @@ function speakCurrentWord() {
     if (synth && currentItem) {
         synth.cancel();
         const utterance = new SpeechSynthesisUtterance(currentItem.word);
-        utterance.lang = currentDictation.lang === 'he' ? 'he-IL' : 'en-US';
+        
+        const mode = currentDictation.practiceMode || 'standard';
+        if (mode === 'translation' || currentDictation.lang === 'en') {
+            utterance.lang = 'en-US';
+        } else {
+            utterance.lang = 'he-IL';
+        }
         
         if (voices.length === 0) {
             voices = synth.getVoices();
         }
 
-        const langPrefix = currentDictation.lang === 'he' ? 'he' : 'en';
-        const availableVoices = voices.filter(v => v.lang.startsWith(langPrefix));
+        const langPrefix = utterance.lang.startsWith('he') ? 'he' : 'en';
+        const availableVoices = voices.filter(v => v.lang.toLowerCase().includes(langPrefix));
 
-        // בחירת קול לפי קול אישה / גבר אם נבחר
         const voiceTypeSelect = document.getElementById('speech-voice-select');
         const voiceType = voiceTypeSelect ? voiceTypeSelect.value : 'auto';
 
         if (availableVoices.length > 0) {
             let chosenVoice = availableVoices[0];
             if (voiceType === 'female') {
-                const femaleVoice = availableVoices.find(v => v.name.toLowerCase().includes('female') || v.name.toLowerCase().includes('zira') || v.name.toLowerCase().includes('susan') || v.name.toLowerCase().includes('google uk english female') || v.name.toLowerCase().includes('google us english'));
+                const femaleVoice = availableVoices.find(v => v.name.toLowerCase().includes('female') || v.name.toLowerCase().includes('zira') || v.name.toLowerCase().includes('susan') || v.name.toLowerCase().includes('google uk english female') || v.name.toLowerCase().includes('google us english') || v.name.toLowerCase().includes('natural'));
                 if (femaleVoice) chosenVoice = femaleVoice;
             } else if (voiceType === 'male') {
                 const maleVoice = availableVoices.find(v => v.name.toLowerCase().includes('male') || v.name.toLowerCase().includes('david') || v.name.toLowerCase().includes('george') || v.name.toLowerCase().includes('google uk english male'));
@@ -404,7 +446,6 @@ function speakCurrentWord() {
             utterance.voice = chosenVoice;
         }
 
-        // קריאת המהירות מתוך תיבת הבחירה החדשה
         const rateSelect = document.getElementById('speech-rate-select');
         utterance.rate = rateSelect ? parseFloat(rateSelect.value) : 0.75;
 
@@ -477,7 +518,7 @@ function checkTypedWord() {
     }
 
     setTimeout(() => {
-        if (feedback) feedback.innerText = '';
+        if (feedback) feedback.innerText = 'ִ';
         if (currentWordIndex < currentDictation.words.length) {
             setupCurrentWordUI();
             speakCurrentWord();
@@ -516,7 +557,7 @@ function showResults() {
         if (!originalDict.historyMistakes) originalDict.historyMistakes = [];
         userMistakes.forEach(m => {
             if (!originalDict.historyMistakes.includes(m.target)) {
-                originalDict.historyMistakes.push(m.target);
+                originalDict.historyMistakes.push(m.target.word || m.target);
             }
         });
 
@@ -536,7 +577,7 @@ function showResults() {
             mistakesBox.innerHTML = '<h4>מילים שכדאי לחזק מהתרגול הנוכחי:</h4>' + userMistakes.map(m => `
                 <p>מילה: <b>${m.target}</b> (הקלדת: ${m.typed})</p>
             `).join('');
-            if (practiceMistakesBtn) practiceMistakesBtn.style.display = 'inline-block';
+            if (practiceMistakesBtn) practiceMistakesBtn.style.display = 'block';
         } else {
             mistakesBox.innerHTML = '<p>✨ אין טעויות בכלל בתרגול הזה!</p>';
             if (practiceMistakesBtn) practiceMistakesBtn.style.display = 'none';
