@@ -6,7 +6,7 @@
     <title>אלופפיצ'ר - עולם ההכתבות</title>
     <link rel="stylesheet" href="style.css">
     <link rel="manifest" href="manifest.json">
-    <meta name="theme-color" content="#4cd137">
+    <meta name="theme-color" content="#6c5ce7">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <link href="https://fonts.googleapis.com/css2?family=Rubik:wght@400;600;700;900&display=swap" rel="stylesheet">
@@ -15,10 +15,10 @@
 
     <!-- מסך התחברות -->
     <div id="auth-screen" class="screen active">
-        <div class="card auth-card">
-            <h1>🎒 אלופפיצ'ר - עולם ההכתבות</h1>
-            <p>תרגול הכתבות חכם וכיפי בעברית ובאנגלית לקראת המבחן של המורה!</p>
-            <div class="auth-buttons">
+        <div class="card auth-card" style="text-align: center;">
+            <h1 style="color: var(--primary);">🎒 אלופפיצ'ר</h1>
+            <p>עולם ההכתבות החכם והמתקדם לקראת המבחן של המורה!</p>
+            <div class="auth-buttons" style="display: flex; flex-direction: column; gap: 10px;">
                 <button onclick="window.loginAsGoogle()" class="btn primary-btn">כניסה עם חשבון Google 🌐</button>
                 <button onclick="window.loginAsGuest()" class="btn secondary-btn">כניסה כאורח 👤</button>
             </div>
@@ -29,22 +29,22 @@
     <div id="profile-screen" class="screen">
         <div class="container">
             <header class="main-header">
-                <h2>בחר פרופיל ילד (עד 5)</h2>
+                <h2>👤 בחר פרופיל ילד</h2>
                 <div class="theme-selector">
-                    <label>ערכת נושא:</label>
+                    <label style="font-size: 14px; font-weight: bold;">ערכת נושא:</label>
                     <select id="theme-select">
                         <option value="soccer">⚽ כדורגל</option>
                         <option value="minecraft">🟩 מיינקראפט</option>
                         <option value="fortnite">🎯 פורטנייט</option>
                         <option value="unicorn">🦄 יוניקורן</option>
-                        <option value="stitch">💙 סטיץ' ואנג'ל</option>
                     </select>
                 </div>
             </header>
 
             <div id="profiles-container" class="grid-container"></div>
 
-            <div class="add-profile-box">
+            <div class="card" style="padding: 20px;">
+                <h3 style="font-size: 18px;">הוספת ילד חדש</h3>
                 <input type="text" id="new-child-name" placeholder="שם הילד/ה...">
                 <button id="add-child-btn" class="btn success-btn">הוסף ילד ➕</button>
             </div>
@@ -54,11 +54,11 @@
     <!-- מסך ניהול הכתבות להורים -->
     <div id="parent-screen" class="screen">
         <div class="container">
-            <button id="back-to-profiles" class="btn secondary-btn">⬅ חזרה לבחירת פרופיל</button>
-            <h2>ניהול הכתבות עבור: <span id="current-managing-child"></span></h2>
+            <button id="back-to-profiles" class="btn secondary-btn" style="width: auto; padding: 8px 15px; margin-bottom: 15px;">⬅ חזרה</button>
+            <h2>ניהול הכתבות עבור: <span id="current-managing-child" style="color: var(--primary);"></span></h2>
             
             <div class="card">
-                <h3>הוספת הכתבה חדשה (הכנה למבחן)</h3>
+                <h3>✨ הוספת הכתבה חדשה (תרגום אוטומטי חכם)</h3>
                 <form id="add-dictation-form">
                     <input type="text" id="dictation-title" placeholder="שם ההכתבה (למשל: חזרה למבחן - עמ' 37)" required>
                     <select id="dictation-lang">
@@ -67,27 +67,27 @@
                     </select>
                     <input type="date" id="dictation-date" required>
                     
-                    <div style="margin: 15px 0; text-align: right; background: #f1f2f6; padding: 10px; border-radius: 8px;">
-                        <label style="display: block; font-weight: bold; margin-bottom: 5px; color: #2d3436;">בחר סגנון תרגול להכתבה זו:</label>
-                        <select id="practice-mode-select" style="width: 100%; padding: 8px; border-radius: 5px; border: 1px solid #ccc;">
+                    <div style="margin: 15px 0; background: rgba(108, 92, 231, 0.05); padding: 12px; border-radius: 12px; border: 1px dashed var(--primary);">
+                        <label style="display: block; font-weight: bold; margin-bottom: 5px; color: var(--primary);">בחר סגנון תרגול להכתבה זו:</label>
+                        <select id="practice-mode-select">
                             <option value="standard">רגיל (כתיבת המילה המלאה לפי שמיעה)</option>
                             <option value="challenge">אתגר אות ראשונה ואחרונה (האמצע גלוי)</option>
                             <option value="translation">מבחן תרגום (שמיעת מילה באנגלית וכתיבת הפירוש בעברית)</option>
                         </select>
                     </div>
 
-                    <textarea id="dictation-words" placeholder="הכנס מילים בשורות נפרדות, עם או בלי מספור&#10;לדוגמה:&#10;1. apple - תפוח&#10;2. cat - חתול" rows="5" required></textarea>
-                    <small style="display: block; color: #636e72; margin-bottom: 10px;">טיפ: הוסף תרגום עברית אחרי מקף (-) או פסיק, לדוגמה: `cat - חתול`</small>
-                    <button type="submit" class="btn primary-btn">שמור הכתבה 💾</button>
+                    <textarea id="dictation-words" placeholder="הכנס מילים באנגלית בשורות נפרדות (המערכת תתרגם אוטומטית לעברית!):&#10;apple&#10;cat&#10;dog" rows="5" required></textarea>
+                    <small style="display: block; color: #636e72; margin-bottom: 15px;">💡 אין צורך לכתוב פירוש ידנית! הכנס מילים באנגלית והמערכת תתרגם לבד ברקע.</small>
+                    <button type="submit" class="btn primary-btn">שמור הכתבה בזיכרון 💾</button>
                 </form>
             </div>
 
             <div class="card">
                 <h3>📅 בחר הכתבה לפי תאריך בלוח השנה</h3>
                 <div class="calendar-filter-box" style="margin-bottom: 15px; display: flex; gap: 10px; justify-content: center; align-items: center; flex-wrap: wrap;">
-                    <input type="date" id="calendar-date-picker" style="width: auto;">
-                    <button id="filter-by-date-btn" class="btn primary-btn" style="padding: 10px 15px; font-size: 14px; margin: 0;">הצג לתאריך 🔍</button>
-                    <button id="show-all-dictations-btn" class="btn secondary-btn" style="padding: 10px 15px; font-size: 14px; margin: 0;">הצג הכל 📋</button>
+                    <input type="date" id="calendar-date-picker" style="width: auto; margin-bottom: 0;">
+                    <button id="filter-by-date-btn" class="btn primary-btn" style="width: auto; padding: 10px 15px; font-size: 14px;">הצג לתאריך 🔍</button>
+                    <button id="show-all-dictations-btn" class="btn secondary-btn" style="width: auto; padding: 10px 15px; font-size: 14px;">הצג הכל 📋</button>
                 </div>
                 <div id="existing-dictations-list"></div>
             </div>
@@ -96,53 +96,51 @@
 
     <!-- מסך תרגול הכתבה לילד -->
     <div id="practice-screen" class="screen">
-        <div class="container">
-            <button id="back-to-profiles-from-practice" class="btn secondary-btn">⬅ יציאה</button>
-            <div class="practice-box card">
-                <h2 id="practice-title-display">תרגול הכתבה</h2>
-                <div class="progress-bar-container">
-                    <div id="progress-bar" style="width: 0%;"></div>
-                </div>
-                <p id="practice-word-counter">מילה 1 מתוך 5</p>
+        <div class="container card" style="text-align: center;">
+            <button id="back-to-profiles-from-practice" class="btn secondary-btn" style="width: auto; padding: 6px 12px; font-size: 14px; float: right; margin-bottom: 10px;">⬅ יציאה</button>
+            <h2 id="practice-title-display" style="clear: both; margin-top: 10px;">תרגול הכתבה</h2>
+            
+            <div class="progress-bar-container">
+                <div id="progress-bar"></div>
+            </div>
+            <p id="practice-word-counter" style="font-weight: bold; color: #636e72;">מילה 1 מתוך 5</p>
 
-                <div id="translation-hint-box" style="font-size: 18px; color: #e17055; font-weight: bold; margin: 10px 0; display: none;">
-                    תרגום מבוקש: <span id="translation-text"></span>
-                </div>
+            <div id="translation-hint-box" style="font-size: 18px; color: #e17055; font-weight: bold; margin: 15px 0; display: none; background: #fff3cd; padding: 8px; border-radius: 8px;">
+                תרגום מבוקש: <span id="translation-text"></span>
+            </div>
 
-                <div id="challenge-hint-box" style="font-size: 20px; color: #0984e3; font-weight: bold; margin: 10px 0; display: none;">
-                    רמז מבנה: <span id="challenge-hint-text"></span>
-                </div>
+            <div id="challenge-hint-box" style="font-size: 22px; color: var(--primary); font-weight: bold; margin: 15px 0; display: none; letter-spacing: 2px;">
+                רמז מבנה: <span id="challenge-hint-text"></span>
+            </div>
 
-                <!-- פקדי שמע ובחירת מהירות וקול דובר -->
-                <div class="audio-controls" style="display: flex; flex-direction: column; gap: 10px; align-items: center; margin: 15px 0;">
-                    <button id="speak-word-btn" class="btn primary-btn big-btn" style="width: 100%;">🔊 שמע מילה</button>
-                    
-                    <div style="display: flex; gap: 10px; width: 100%; justify-content: center; flex-wrap: wrap;">
-                        <div style="flex: 1; min-width: 130px;">
-                            <label style="font-size: 13px; display: block; margin-bottom: 3px; font-weight: bold;">מהירות הקראה:</label>
-                            <select id="speech-rate-select" style="width: 100%; padding: 6px; border-radius: 5px; border: 1px solid #ccc;">
-                                <option value="0.5">🐢 איטי מאוד (0.5)</option>
-                                <option value="0.75" selected>🚶 איטי וברור (0.75)</option>
-                                <option value="1.0">🏃 רגיל (1.0)</option>
-                            </select>
-                        </div>
-                        <div style="flex: 1; min-width: 130px;">
-                            <label style="font-size: 13px; display: block; margin-bottom: 3px; font-weight: bold;">סוג קול (דובר/ה):</label>
-                            <select id="speech-voice-select" style="width: 100%; padding: 6px; border-radius: 5px; border: 1px solid #ccc;">
-                                <option value="auto">אוቶמטי (ברירת מחדל)</option>
-                                <option value="female">קול אישה 👩</option>
-                                <option value="male">קול גבר 👨</option>
-                            </select>
-                        </div>
+            <div class="audio-controls" style="display: flex; flex-direction: column; gap: 10px; align-items: center; margin: 20px 0;">
+                <button id="speak-word-btn" class="btn primary-btn" style="font-size: 18px; padding: 16px;">🔊 שמע מילה</button>
+                
+                <div style="display: flex; gap: 10px; width: 100%; justify-content: center; flex-wrap: wrap;">
+                    <div style="flex: 1; min-width: 140px; text-align: right;">
+                        <label style="font-size: 12px; display: block; margin-bottom: 3px; font-weight: bold;">מהירות הקראה:</label>
+                        <select id="speech-rate-select" style="margin-bottom: 0;">
+                            <option value="0.5">🐢 איטי מאוד (0.5)</option>
+                            <option value="0.75" selected>🚶 איטי וברור (0.75)</option>
+                            <option value="1.0">🏃 רגיל (1.0)</option>
+                        </select>
+                    </div>
+                    <div style="flex: 1; min-width: 140px; text-align: right;">
+                        <label style="font-size: 12px; display: block; margin-bottom: 3px; font-weight: bold;">סוג קול (דובר/ה):</label>
+                        <select id="speech-voice-select" style="margin-bottom: 0;">
+                            <option value="auto">אוֹטוֹמָטִי</option>
+                            <option value="female">קול אישה 👩</option>
+                            <option value="male">קול גבר 👨</option>
+                        </select>
                     </div>
                 </div>
-
-                <div class="input-area">
-                    <input type="text" id="user-typed-word" placeholder="הקלד את התשובה כאן..." autocomplete="off">
-                    <button id="submit-word-btn" class="btn success-btn">בדוק 🎯</button>
-                </div>
-                <p id="feedback-message"></p>
             </div>
+
+            <div class="input-area" style="display: flex; gap: 10px; margin-top: 15px;">
+                <input type="text" id="user-typed-word" placeholder="הקלד את התשובה כאן..." autocomplete="off" style="margin-bottom: 0; flex: 1;">
+                <button id="submit-word-btn" class="btn success-btn" style="width: auto; padding: 0 25px;">בדוק 🎯</button>
+            </div>
+            <p id="feedback-message" style="font-size: 18px; font-weight: bold; margin-top: 15px; min-height: 25px;"></p>
         </div>
     </div>
 
@@ -150,11 +148,13 @@
     <div id="results-screen" class="screen">
         <div class="container card text-center">
             <h2>🎉 כל הכבוד! סיימת את ההכתבה!</h2>
-            <p id="final-score-text" class="big-text"></p>
-            <div id="mistakes-review" class="mistakes-box"></div>
-            <button id="restart-practice-btn" class="btn primary-btn">תרגל שוב 🔄</button>
-            <button id="practice-mistakes-only-btn" class="btn warning-btn" style="display: none;">תרגל רק על המילים שטעית בהן 💡</button>
-            <button id="finish-practice-btn" class="btn secondary-btn">חזרה לתפריט הראשי 🏠</button>
+            <p id="final-score-text" class="big-text" style="font-size: 18px; margin: 20px 0;"></p>
+            <div id="mistakes-review" class="mistakes-box" style="text-align: right; margin-bottom: 20px;"></div>
+            <div style="display: flex; flex-direction: column; gap: 10px;">
+                <button id="restart-practice-btn" class="btn primary-btn">תרגל שוב 🔄</button>
+                <button id="practice-mistakes-only-btn" class="btn warning-btn" style="display: none;">תרגל רק על המילים שטעית בהן 💡</button>
+                <button id="finish-practice-btn" class="btn secondary-btn">חזרה לתפריט הראשי 🏠</button>
+            </div>
         </div>
     </div>
 
