@@ -1,19 +1,31 @@
+const STORAGE_KEY = 'spellingAppData';
+
 let appData = {
     user: null,
     children: [],
     dictations: {}
 };
 
-try {
-    const saved = JSON.parse(localStorage.getItem('spellingAppData'));
-    if (saved && typeof saved === 'object') {
-        appData = {
-            user: saved.user || null,
-            children: Array.isArray(saved.children) ? saved.children : [],
-            dictations: saved.dictations && typeof saved.dictations === 'object' ? saved.dictations : {}
-        };
-    }
-} catch (e) {}
+function loadAppDataFromStorage() {
+    try {
+        const saved = JSON.parse(localStorage.getItem(STORAGE_KEY));
+        if (saved && typeof saved === 'object') {
+            appData = {
+                user: saved.user || null,
+                children: Array.isArray(saved.children) ? saved.children : [],
+                dictations: saved.dictations && typeof saved.dictations === 'object' ? saved.dictations : {}
+            };
+        }
+    } catch (e) {}
+}
+
+function saveAppData() {
+    try {
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(appData));
+    } catch (e) {}
+}
+
+loadAppDataFromStorage();
 
 let currentChild = null;
 let currentDictation = null;
@@ -46,13 +58,59 @@ window.showScreen = function(screenId) {
     }
 };
 
-function saveAppData() {
-    try {
-        localStorage.setItem('spellingAppData', JSON.stringify(appData));
-    } catch (e) {}
-}
+window.selectChildById = function(childId) {
+    loadAppDataFromStorage();
+    const found = (appData.children || []).find(c => c.id === childId);
+    if (!found) return;
+    currentChild = found;
+    openParentOrPractice();
+};
+
+window.editChildName = function(event, childId) {
+    if (event) event.stopPropagation();
+    loadAppDataFromStorage();
+    const child = (appData.children || []).find(c => c.id === childId);
+    if (!child) return;
+
+    const updatedName = prompt('ערוך את שם הילד/ה:', child.name);
+    if (updatedName === null) return;
+
+    const cleanName = updatedName.trim();
+    if (!cleanName) {
+        alert('שם הילד לא יכול להיות ריק');
+        return;
+    }
+
+    child.name = cleanName;
+    if (currentChild && currentChild.id === childId) {
+        currentChild.name = cleanName;
+    }
+    saveAppData();
+    renderProfiles();
+};
+
+window.deleteChildProfile = function(event, childId) {
+    if (event) event.stopPropagation();
+    loadAppDataFromStorage();
+    const child = (appData.children || []).find(c => c.id === childId);
+    if (!child) return;
+
+    const ok = confirm(`למחוק את הפרופיל "${child.name}"?`);
+    if (!ok) return;
+
+    appData.children = appData.children.filter(c => c.id !== childId);
+    if (appData.dictations && appData.dictations[childId]) {
+        delete appData.dictations[childId];
+    }
+    if (currentChild && currentChild.id === childId) {
+        currentChild = null;
+    }
+    saveAppData();
+    renderProfiles();
+};
 
 function renderProfiles() {
+    loadAppDataFromStorage();
     const container = document.getElementById('profiles-container');
     if (!container) return;
     container.innerHTML = '';
@@ -65,16 +123,55 @@ function renderProfiles() {
     appData.children.forEach(child => {
         const card = document.createElement('div');
         card.className = 'profile-card';
-        card.innerHTML = `<h3 style="margin-bottom:0;">👤 ${child.name}</h3>`;
+        card.style.display = 'flex';
+        card.style.flexDirection = 'column';
+        card.style.alignItems = 'center';
+        card.style.gap = '10px';
+
+        const titleEl = document.createElement('h3');
+        titleEl.style.margin = '0';
+        titleEl.style.cursor = 'pointer';
+        titleEl.innerText = `👤 ${child.name}`;
+
+        const actionsRow = document.createElement('div');
+        actionsRow.style.display = 'flex';
+        actionsRow.style.gap = '8px';
+
+        const editBtn = document.createElement('button');
+        editBtn.type = 'button';
+        editBtn.className = 'btn secondary-btn';
+        editBtn.style.width = 'auto';
+        editBtn.style.padding = '5px 10px';
+        editBtn.style.fontSize = '12px';
+        editBtn.innerText = '✏️ ערוך שם';
+        editBtn.addEventListener('click', (e) => window.editChildName(e, child.id));
+
+        const delBtn = document.createElement('button');
+        delBtn.type = 'button';
+        delBtn.className = 'btn secondary-btn';
+        delBtn.style.width = 'auto';
+        delBtn.style.padding = '5px 10px';
+        delBtn.style.fontSize = '12px';
+        delBtn.innerText = '🗑️';
+        delBtn.addEventListener('click', (e) => window.deleteChildProfile(e, child.id));
+
+        actionsRow.appendChild(editBtn);
+        actionsRow.appendChild(delBtn);
+
+        card.appendChild(titleEl);
+        card.appendChild(actionsRow);
+
         card.addEventListener('click', () => {
             currentChild = child;
             openParentOrPractice();
         });
+
         container.appendChild(card);
     });
 }
 
 window.addChildProfile = function() {
+    loadAppDataFromStorage();
     const nameInput = document.getElementById('new-child-name');
     const name = nameInput ? nameInput.value.trim() : '';
     if (!name) {
@@ -98,11 +195,12 @@ window.addChildProfile = function() {
 
 function saveAndRenderProfiles() {
     saveAppData();
-    showScreen('profile-screen');
     renderProfiles();
+    showScreen('profile-screen');
 }
 
 window.loginAsGoogle = function() {
+    loadAppDataFromStorage();
     appData.user = { name: 'הורה מחובר', email: 'parent@gmail.com' };
     saveAndRenderProfiles();
 };
@@ -202,6 +300,17 @@ function initAppHandlers() {
     if (addChildBtn && !addChildBtn.dataset.bound) {
         addChildBtn.dataset.bound = '1';
         addChildBtn.addEventListener('click', window.addChildProfile);
+    }
+
+    const childNameInput = document.getElementById('new-child-name');
+    if (childNameInput && !childNameInput.dataset.bound) {
+        childNameInput.dataset.bound = '1';
+        childNameInput.addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') {
+                e.preventDefault();
+                window.addChildProfile();
+            }
+        });
     }
 
     const backBtn1 = document.getElementById('back-to-profiles');
@@ -397,6 +506,7 @@ if (document.readyState === 'loading') {
 }
 
 function renderDictationsList(filterDate = null) {
+    loadAppDataFromStorage();
     const listContainer = document.getElementById('existing-dictations-list');
     if (!listContainer || !currentChild) return;
     listContainer.innerHTML = '';
@@ -580,9 +690,6 @@ function speakCurrentWord() {
 
     try {
         synth.resume();
-    } catch (e) {}
-
-    try {
         synth.cancel();
     } catch (e) {}
 
@@ -753,4 +860,23 @@ function showResults() {
         saveAppData();
     }
 
-    const scoreText = document.getElementBy
+    const scoreText = document.getElementById('final-score-text');
+    if (scoreText) {
+        scoreText.innerHTML = `ענית נכון על ${correctCount} מתוך ${totalWords} מילים!<br><br><b>רמת ביצוע: ${category}</b><br><span style="font-size: 16px; color: #636e72;">${categoryEmoji}</span>`;
+    }
+
+    const mistakesBox = document.getElementById('mistakes-review');
+    const practiceMistakesBtn = document.getElementById('practice-mistakes-only-btn');
+
+    if (mistakesBox) {
+        if (userMistakes.length > 0) {
+            mistakesBox.innerHTML = '<h4>מילים שכדאי לחזק מהתרגול הנוכחי:</h4>' + userMistakes.map(m => `
+                <p>מילה: <b>${m.target}</b> (הקלדת: ${m.typed})</p>
+            `).join('');
+            if (practiceMistakesBtn) practiceMistakesBtn.style.display = 'inline-block';
+        } else {
+            mistakesBox.innerHTML = '<p>✨ אין טעויות בכלל בתרגול הזה!</p>';
+            if (practiceMistakesBtn) practiceMistakesBtn.style.display = 'none';
+        }
+    }
+}
