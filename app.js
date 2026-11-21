@@ -450,7 +450,6 @@ function setupCurrentWordUI() {
     if (!inputField || !currentItem) return;
     inputField.value = '';
 
-    // איפוס רמזים למילה החדשה
     if (hebrewHintDisplay) hebrewHintDisplay.style.display = 'none';
     if (imageHintDisplay) imageHintDisplay.style.display = 'none';
     if (imageHintImg) {
@@ -493,43 +492,57 @@ function setupCurrentWordUI() {
 function speakCurrentWord() {
     if (!currentDictation) return;
     const currentItem = currentDictation.words[currentWordIndex];
-    if (synth && currentItem) {
-        synth.cancel();
+    if (!synth || !currentItem) return;
+
+    try {
+        synth.resume();
+    } catch (e) {}
+
+    const runUtterance = () => {
         const utterance = new SpeechSynthesisUtterance(currentItem.word);
-        
+
         const mode = currentDictation.practiceMode || 'standard';
         if (mode === 'translation' || currentDictation.lang === 'en') {
             utterance.lang = 'en-US';
         } else {
             utterance.lang = 'he-IL';
         }
-        
-        if (voices.length === 0) {
-            voices = synth.getVoices();
+
+        const currentVoices = synth.getVoices();
+        if (currentVoices && currentVoices.length > 0) {
+            voices = currentVoices;
         }
 
         const langPrefix = utterance.lang.startsWith('he') ? 'he' : 'en';
-        const availableVoices = voices.filter(v => v.lang.toLowerCase().includes(langPrefix));
+        const availableVoices = voices.filter(v => v.lang && v.lang.toLowerCase().replace('_', '-').startsWith(langPrefix));
 
         const voiceTypeSelect = document.getElementById('speech-voice-select');
         const voiceType = voiceTypeSelect ? voiceTypeSelect.value : 'auto';
 
-        if (availableVoices.length > 0) {
-            let chosenVoice = availableVoices[0];
+        if (availableVoices.length > 0 && voiceType !== 'auto') {
+            let matchedVoice = null;
             if (voiceType === 'female') {
-                const femaleVoice = availableVoices.find(v => v.name.toLowerCase().includes('female') || v.name.toLowerCase().includes('zira') || v.name.toLowerCase().includes('susan') || v.name.toLowerCase().includes('google uk english female') || v.name.toLowerCase().includes('google us english') || v.name.toLowerCase().includes('natural'));
-                if (femaleVoice) chosenVoice = femaleVoice;
+                matchedVoice = availableVoices.find(v => /female|zira|susan|samantha|victoria|moira|tessa|fiona|google.*female|natural.*female/i.test(v.name));
             } else if (voiceType === 'male') {
-                const maleVoice = availableVoices.find(v => v.name.toLowerCase().includes('male') || v.name.toLowerCase().includes('david') || v.name.toLowerCase().includes('george') || v.name.toLowerCase().includes('google uk english male'));
-                if (maleVoice) chosenVoice = maleVoice;
+                matchedVoice = availableVoices.find(v => /\bmale\b|david|george|daniel|alex|fred|google.*male|natural.*male/i.test(v.name));
             }
-            utterance.voice = chosenVoice;
+            if (matchedVoice) {
+                utterance.voice = matchedVoice;
+            }
         }
 
         const rateSelect = document.getElementById('speech-rate-select');
-        utterance.rate = rateSelect ? parseFloat(rateSelect.value) : 0.75;
+        const parsedRate = rateSelect ? parseFloat(rateSelect.value) : 0.75;
+        utterance.rate = isNaN(parsedRate) ? 0.75 : parsedRate;
 
         synth.speak(utterance);
+    };
+
+    if (synth.speaking || synth.pending) {
+        synth.cancel();
+        setTimeout(runUtterance, 60);
+    } else {
+        runUtterance();
     }
 }
 
