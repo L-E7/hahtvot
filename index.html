@@ -7,6 +7,7 @@
     <link rel="stylesheet" href="style.css">
     <link rel="manifest" href="manifest.json">
     <meta name="theme-color" content="#6c5ce7">
+    <meta name="mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <link href="https://fonts.googleapis.com/css2?family=Rubik:wght@400;600;700;900&display=swap" rel="stylesheet">
@@ -19,8 +20,7 @@
             <h1 style="color: var(--primary);">🎒 אלופפיצ'ר</h1>
             <p>עולם ההכתבות החכם והמתקדם לקראת המבחן של המורה!</p>
             <div class="auth-buttons" style="display: flex; flex-direction: column; gap: 10px;">
-                <button onclick="window.loginAsGoogle()" class="btn primary-btn">כניסה עם חשבון Google 🌐</button>
-                <button onclick="window.loginAsGuest()" class="btn secondary-btn">כניסה כאורח 👤</button>
+                <button type="button" onclick="window.loginAsGoogle()" class="btn primary-btn">כניסה והמשך לתרגול 🌐</button>
             </div>
         </div>
     </div>
@@ -46,7 +46,7 @@
             <div class="card" style="padding: 20px;">
                 <h3 style="font-size: 18px;">הוספת ילד חדש</h3>
                 <input type="text" id="new-child-name" placeholder="שם הילד/ה...">
-                <button id="add-child-btn" class="btn success-btn">הוסף ילד ➕</button>
+                <button type="button" id="add-child-btn" class="btn success-btn">הוסף ילד ➕</button>
             </div>
         </div>
     </div>
@@ -54,7 +54,7 @@
     <!-- מסך ניהול הכתבות להורים -->
     <div id="parent-screen" class="screen">
         <div class="container">
-            <button id="back-to-profiles" class="btn secondary-btn" style="width: auto; padding: 8px 15px; margin-bottom: 15px;">⬅ חזרה</button>
+            <button type="button" id="back-to-profiles" class="btn secondary-btn" style="width: auto; padding: 8px 15px; margin-bottom: 15px;">⬅ חזרה</button>
             <h2>ניהול הכתבות עבור: <span id="current-managing-child" style="color: var(--primary);"></span></h2>
             
             <div class="card">
@@ -86,8 +86,8 @@
                 <h3>📅 בחר הכתבה לפי תאריך בלוח השנה</h3>
                 <div class="calendar-filter-box" style="margin-bottom: 15px; display: flex; gap: 10px; justify-content: center; align-items: center; flex-wrap: wrap;">
                     <input type="date" id="calendar-date-picker" style="width: auto; margin-bottom: 0;">
-                    <button id="filter-by-date-btn" class="btn primary-btn" style="width: auto; padding: 10px 15px; font-size: 14px;">הצג לתאריך 🔍</button>
-                    <button id="show-all-dictations-btn" class="btn secondary-btn" style="width: auto; padding: 10px 15px; font-size: 14px;">הצג הכל 📋</button>
+                    <button type="button" id="filter-by-date-btn" class="btn primary-btn" style="width: auto; padding: 10px 15px; font-size: 14px;">הצג לתאריך 🔍</button>
+                    <button type="button" id="show-all-dictations-btn" class="btn secondary-btn" style="width: auto; padding: 10px 15px; font-size: 14px;">הצג הכל 📋</button>
                 </div>
                 <div id="existing-dictations-list"></div>
             </div>
@@ -97,7 +97,7 @@
     <!-- מסך תרגול הכתבה לילד -->
     <div id="practice-screen" class="screen">
         <div class="container card" style="text-align: center;">
-            <button id="back-to-profiles-from-practice" class="btn secondary-btn" style="width: auto; padding: 6px 12px; font-size: 14px; float: right; margin-bottom: 10px;">⬅ יציאה</button>
+            <button type="button" id="back-to-profiles-from-practice" class="btn secondary-btn" style="width: auto; padding: 6px 12px; font-size: 14px; float: right; margin-bottom: 10px;">⬅ יציאה</button>
             <h2 id="practice-title-display" style="clear: both; margin-top: 10px;">תרגול הכתבה</h2>
             
             <div class="progress-bar-container">
@@ -128,7 +128,8 @@
             </div>
 
             <div class="audio-controls" style="display: flex; flex-direction: column; gap: 10px; align-items: center; margin: 18px 0;">
-                <button id="speak-word-btn" class="btn primary-btn" style="font-size: 18px; padding: 16px;">🔊 שמע מילה</button>
+                <button type="button" id="speak-word-btn" class="btn primary-btn" style="font-size: 18px; padding: 16px;">🔊 שמע מילה</button>
+                <p id="speech-status" style="font-size: 12px; color: #636e72; margin: 0;"></p>
                 
                 <div style="display: flex; gap: 10px; width: 100%; justify-content: center; flex-wrap: wrap;">
                     <div style="flex: 1; min-width: 140px; text-align: right;">
@@ -153,7 +154,7 @@
 
             <div class="input-area" style="display: flex; gap: 10px; margin-top: 15px;">
                 <input type="text" id="user-typed-word" placeholder="הקלד את התשובה כאן..." autocomplete="off" style="margin-bottom: 0; flex: 1;">
-                <button id="submit-word-btn" class="btn success-btn" style="width: auto; padding: 0 25px;">בדוק 🎯</button>
+                <button type="button" id="submit-word-btn" class="btn success-btn" style="width: auto; padding: 0 25px;">בדוק 🎯</button>
             </div>
             <p id="feedback-message" style="font-size: 18px; font-weight: bold; margin-top: 15px; min-height: 25px;"></p>
         </div>
@@ -166,9 +167,9 @@
             <p id="final-score-text" class="big-text" style="font-size: 18px; margin: 20px 0;"></p>
             <div id="mistakes-review" class="mistakes-box" style="text-align: right; margin-bottom: 20px;"></div>
             <div style="display: flex; flex-direction: column; gap: 10px;">
-                <button id="restart-practice-btn" class="btn primary-btn">תרגל שוב 🔄</button>
-                <button id="practice-mistakes-only-btn" class="btn warning-btn" style="display: none;">תרגל רק על המילים שטעית בהן 💡</button>
-                <button id="finish-practice-btn" class="btn secondary-btn">חזרה לתפריט הראשי 🏠</button>
+                <button type="button" id="restart-practice-btn" class="btn primary-btn">תרגל שוב 🔄</button>
+                <button type="button" id="practice-mistakes-only-btn" class="btn warning-btn" style="display: none;">תרגל רק על המילים שטעית בהן 💡</button>
+                <button type="button" id="finish-practice-btn" class="btn secondary-btn">חזרה לתפריט הראשי 🏠</button>
             </div>
         </div>
     </div>
