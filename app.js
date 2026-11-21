@@ -76,6 +76,75 @@ function openParentOrPractice() {
     showScreen('parent-screen');
 }
 
+async function showHebrewHint() {
+    if (!currentDictation) return;
+    const currentItem = currentDictation.words[currentWordIndex];
+    if (!currentItem) return;
+
+    const hintBox = document.getElementById('hebrew-hint-display');
+    const hintWord = document.getElementById('hebrew-hint-word');
+    if (!hintBox || !hintWord) return;
+
+    hintBox.style.display = 'block';
+
+    if (currentItem.translation && currentItem.translation !== currentItem.word) {
+        hintWord.innerText = currentItem.translation;
+        return;
+    }
+
+    hintWord.innerText = 'מחפש תרגום...';
+    try {
+        const sourceLang = currentDictation.lang === 'he' ? 'he' : 'en';
+        const res = await fetch(`https://api.mymemory.translated.net/get?q=${encodeURIComponent(currentItem.word)}&langpair=${sourceLang}|he`);
+        const data = await res.json();
+        const translated = data?.responseData?.translatedText;
+        if (translated) {
+            currentItem.translation = translated;
+            hintWord.innerText = translated;
+        } else {
+            hintWord.innerText = 'לא נמצא תרגום';
+        }
+    } catch (err) {
+        hintWord.innerText = 'שגיאה בטעינת תרגום';
+    }
+}
+
+async function showImageHint() {
+    if (!currentDictation) return;
+    const currentItem = currentDictation.words[currentWordIndex];
+    if (!currentItem) return;
+
+    const imgBox = document.getElementById('image-hint-display');
+    const statusEl = document.getElementById('image-hint-status');
+    const imgEl = document.getElementById('image-hint-img');
+    if (!imgBox || !statusEl || !imgEl) return;
+
+    imgBox.style.display = 'block';
+    imgEl.style.display = 'none';
+    statusEl.innerText = 'מחפש תמונה...';
+
+    const queryTerm = currentItem.word;
+
+    try {
+        const url = `https://commons.wikimedia.org/w/api.php?action=query&generator=search&gsrnamespace=6&gsrsearch=${encodeURIComponent(queryTerm + ' filetype:bitmap')}&gsrlimit=5&prop=imageinfo&iiprop=url&iiurlwidth=300&format=json&origin=*`;
+        const res = await fetch(url);
+        const data = await res.json();
+        const pages = data?.query?.pages ? Object.values(data.query.pages) : [];
+        const match = pages.find(p => p.imageinfo && p.imageinfo[0] && (p.imageinfo[0].thumburl || p.imageinfo[0].url));
+
+        if (match) {
+            const info = match.imageinfo[0];
+            imgEl.src = info.thumburl || info.url;
+            imgEl.style.display = 'block';
+            statusEl.innerText = '';
+        } else {
+            statusEl.innerText = 'לא נמצאה תמונה מתאימה למילה זו.';
+        }
+    } catch (err) {
+        statusEl.innerText = 'לא ניתן לטעון תמונה כרגע.';
+    }
+}
+
 document.addEventListener('DOMContentLoaded', () => {
     const themeSelect = document.getElementById('theme-select');
     if (themeSelect) {
@@ -107,7 +176,6 @@ document.addEventListener('DOMContentLoaded', () => {
     const backBtn2 = document.getElementById('back-to-profiles-from-practice');
     if (backBtn2) backBtn2.addEventListener('click', () => showScreen('profile-screen'));
 
-    // פונקציית שמירת הכתבה עם תרגום אוטומטי חכם מובנה
     const dictForm = document.getElementById('add-dictation-form');
     if (dictForm) {
         dictForm.addEventListener('submit', async (e) => {
@@ -124,7 +192,6 @@ document.addEventListener('DOMContentLoaded', () => {
                 return alert('נא להכניס לפחות מילה אחת בשורה');
             }
 
-            // הצגת הודעת טעינה בזמן שהמערכת מתרגמת אוטומטית ברקע
             const submitBtn = dictForm.querySelector('button[type="submit"]');
             const originalBtnText = submitBtn.innerText;
             submitBtn.innerText = 'מבצע תרגום אוטומטי חכם... ⏳';
@@ -146,7 +213,6 @@ document.addEventListener('DOMContentLoaded', () => {
                     translationPart = parts.slice(1).join(',').trim();
                 }
 
-                // אם אין תרגום ידני וההכתבה באנגלית, נשתמש בתרגום אוטומטי חינמי
                 if (!translationPart && lang === 'en') {
                     try {
                         const res = await fetch(`https://api.mymemory.translated.net/get?q=${encodeURIComponent(wordPart)}&langpair=en|he`);
@@ -217,6 +283,12 @@ document.addEventListener('DOMContentLoaded', () => {
             renderDictationsList();
         });
     }
+
+    const hebrewHintBtn = document.getElementById('hebrew-hint-btn');
+    if (hebrewHintBtn) hebrewHintBtn.addEventListener('click', showHebrewHint);
+
+    const imageHintBtn = document.getElementById('image-hint-btn');
+    if (imageHintBtn) imageHintBtn.addEventListener('click', showImageHint);
 
     const speakBtn = document.getElementById('speak-word-btn');
     if (speakBtn) speakBtn.addEventListener('click', speakCurrentWord);
@@ -366,34 +438,42 @@ function startPracticeMistakesOnly() {
 
 function setupCurrentWordUI() {
     const currentItem = currentDictation.words[currentWordIndex];
-    const translationBox = document.getElementById('translation-hint-box');
-    const translationText = document.getElementById('translation-text');
+    const modeBox = document.getElementById('mode-instruction-box');
+    const modeText = document.getElementById('mode-instruction-text');
     const challengeBox = document.getElementById('challenge-hint-box');
     const challengeText = document.getElementById('challenge-hint-text');
+    const hebrewHintDisplay = document.getElementById('hebrew-hint-display');
+    const imageHintDisplay = document.getElementById('image-hint-display');
+    const imageHintImg = document.getElementById('image-hint-img');
     const inputField = document.getElementById('user-typed-word');
 
     if (!inputField || !currentItem) return;
     inputField.value = '';
 
+    // איפוס רמזים למילה החדשה
+    if (hebrewHintDisplay) hebrewHintDisplay.style.display = 'none';
+    if (imageHintDisplay) imageHintDisplay.style.display = 'none';
+    if (imageHintImg) {
+        imageHintImg.style.display = 'none';
+        imageHintImg.src = '';
+    }
+
     const mode = currentDictation.practiceMode || 'standard';
 
     if (mode === 'translation') {
-        if (translationBox) translationBox.style.display = 'block';
-        if (translationText) translationText.innerText = 'שמע את המילה באנגלית והקלד את הפירוש בעברית!';
+        if (modeBox) modeBox.style.display = 'block';
+        if (modeText) modeText.innerText = 'שמע את המילה באנגלית והקלד את הפירוש בעברית!';
         if (challengeBox) challengeBox.style.display = 'none';
         inputField.placeholder = "הקלד את הפירוש בעברית...";
     } else if (mode === 'challenge' && currentItem.word.length > 2) {
-        if (translationBox) translationBox.style.display = currentItem.translation ? 'block' : 'none';
-        if (currentItem.translation && translationText) translationText.innerText = `פירוש: ${currentItem.translation}`;
-        
+        if (modeBox) modeBox.style.display = 'none';
         if (challengeBox) challengeBox.style.display = 'block';
         const word = currentItem.word;
         const middlePart = word.substring(1, word.length - 1);
         if (challengeText) challengeText.innerText = `_  ${middlePart}  _`;
         inputField.placeholder = "הקלד אות ראשונה ואחרונה...";
     } else {
-        if (translationBox) translationBox.style.display = currentItem.translation ? 'block' : 'none';
-        if (currentItem.translation && translationText) translationText.innerText = `פירוש: ${currentItem.translation}`;
+        if (modeBox) modeBox.style.display = 'none';
         if (challengeBox) challengeBox.style.display = 'none';
         inputField.placeholder = "הקלד את המילה כאן...";
     }
@@ -518,7 +598,7 @@ function checkTypedWord() {
     }
 
     setTimeout(() => {
-        if (feedback) feedback.innerText = 'ִ';
+        if (feedback) feedback.innerText = '';
         if (currentWordIndex < currentDictation.words.length) {
             setupCurrentWordUI();
             speakCurrentWord();
