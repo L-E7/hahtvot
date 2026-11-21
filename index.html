@@ -20,7 +20,7 @@
             <h1 style="color: var(--primary);">🎒 אלופפיצ'ר</h1>
             <p>עולם ההכתבות החכם והמתקדם לקראת המבחן של המורה!</p>
             <div class="auth-buttons" style="display: flex; flex-direction: column; gap: 10px;">
-                <button type="button" onclick="window.loginAsGoogle()" class="btn primary-btn">כניסה והמשך לתרגול 🌐</button>
+                <button type="button" id="main-login-btn" onclick="handleLoginClick()" class="btn primary-btn">כניסה והמשך לתרגול 🌐</button>
             </div>
         </div>
     </div>
@@ -174,6 +174,23 @@
         </div>
     </div>
 
+    <script>
+        function handleLoginClick() {
+            if (typeof window.loginAsGoogle === 'function') {
+                window.loginAsGoogle();
+                return;
+            }
+            try {
+                const raw = localStorage.getItem('spellingAppData');
+                const data = raw ? JSON.parse(raw) : { user: null, children: [], dictations: {} };
+                data.user = { name: 'הורה מחובר', email: 'parent@gmail.com' };
+                localStorage.setItem('spellingAppData', JSON.stringify(data));
+            } catch (e) {}
+            document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+            const profileScreen = document.getElementById('profile-screen');
+            if (profileScreen) profileScreen.classList.add('active');
+        }
+    </script>
     <script src="app.js"></script>
 </body>
 </html>
