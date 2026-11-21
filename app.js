@@ -27,6 +27,67 @@ function saveAppData() {
 
 loadAppDataFromStorage();
 
+const THEME_KEY = 'spellingAppTheme';
+const SAVE_BTN_LABEL = 'שמור הכתבה';
+const UPDATE_BTN_LABEL = 'עדכן הכתבה';
+
+function escapeHtml(value) {
+    return String(value ?? '')
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#39;');
+}
+
+function formatDate(isoDate) {
+    if (!isoDate) return '—';
+    const d = new Date(`${isoDate}T00:00:00`);
+    if (isNaN(d.getTime())) return isoDate;
+    return d.toLocaleDateString('he-IL', { day: 'numeric', month: 'short', year: 'numeric' });
+}
+
+function todayIso() {
+    const d = new Date();
+    const pad = (n) => String(n).padStart(2, '0');
+    return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
+}
+
+function statusTone(status) {
+    if (!status) return '';
+    if (status.includes('הצלחת')) return 'badge-success';
+    if (status.includes('רק עוד')) return 'badge-warning';
+    if (status.includes('צריך')) return 'badge-danger';
+    return '';
+}
+
+function iconSvg(name, extraClass = '') {
+    return `<svg class="icon ${extraClass}" aria-hidden="true"><use href="#i-${name}"/></svg>`;
+}
+
+function applyTheme(theme) {
+    const allowed = ['soccer', 'minecraft', 'fortnite', 'unicorn'];
+    const safeTheme = allowed.includes(theme) ? theme : 'soccer';
+    document.body.setAttribute('data-theme', safeTheme);
+    const select = document.getElementById('theme-select');
+    if (select) select.value = safeTheme;
+    const meta = document.querySelector('meta[name="theme-color"]');
+    if (meta) {
+        const bg = getComputedStyle(document.body).getPropertyValue('--bg').trim();
+        if (bg) meta.setAttribute('content', bg);
+    }
+}
+
+function resetEditState() {
+    editingDictId = null;
+    const submitBtn = document.querySelector('#add-dictation-form button[type="submit"]');
+    if (submitBtn) submitBtn.innerText = SAVE_BTN_LABEL;
+    const cancelBtn = document.getElementById('cancel-edit-btn');
+    if (cancelBtn) cancelBtn.hidden = true;
+    const formTitle = document.getElementById('dictation-form-title');
+    if (formTitle) formTitle.innerText = 'הוספת הכתבה חדשה';
+}
+
 let currentChild = null;
 let currentDictation = null;
 let currentWordIndex = 0;
@@ -116,56 +177,50 @@ function renderProfiles() {
     if (!container) return;
     container.innerHTML = '';
 
-    if (!appData.children || appData.children.length === 0) {
-        container.innerHTML = '<p style="text-align: center; color: #636e72; grid-column: 1 / -1;">אין עדיין פרופילים. הוסף ילד למטה 👇</p>';
+    const children = appData.children || [];
+    const countBadge = document.getElementById('children-count');
+    if (countBadge) countBadge.innerText = `${children.length}/5`;
+    const addBtn = document.getElementById('add-child-btn');
+    const nameInput = document.getElementById('new-child-name');
+    const isFull = children.length >= 5;
+    if (addBtn) addBtn.disabled = isFull;
+    if (nameInput) {
+        nameInput.disabled = isFull;
+        nameInput.placeholder = isFull ? 'הגעת למספר הפרופילים המרבי' : 'שם הילד/ה...';
+    }
+
+    if (children.length === 0) {
+        container.innerHTML = `
+            <div class="empty-state">
+                <strong>אין עדיין פרופילים</strong>
+                <span>הוסיפו את הילד הראשון בטופס למטה כדי להתחיל לתרגל.</span>
+            </div>`;
         return;
     }
 
-    appData.children.forEach(child => {
+    children.forEach(child => {
+        const dictCount = (appData.dictations[child.id] || []).length;
+        const initial = (child.name || '?').trim().charAt(0) || '?';
+
         const card = document.createElement('div');
         card.className = 'profile-card';
-        card.style.display = 'flex';
-        card.style.flexDirection = 'column';
-        card.style.alignItems = 'center';
-        card.style.gap = '10px';
+        card.innerHTML = `
+            <button type="button" class="profile-select" aria-label="בחר את ${escapeHtml(child.name)}">
+                <span class="avatar" aria-hidden="true">${escapeHtml(initial)}</span>
+                <span class="profile-name">${escapeHtml(child.name)}</span>
+                <span class="profile-meta">${dictCount === 1 ? 'הכתבה אחת' : `${dictCount} הכתבות`}</span>
+            </button>
+            <div class="profile-actions">
+                <button type="button" class="btn icon-btn" data-action="edit" aria-label="ערוך שם של ${escapeHtml(child.name)}" title="ערוך שם">${iconSvg('pencil')}</button>
+                <button type="button" class="btn icon-btn danger" data-action="delete" aria-label="מחק את הפרופיל של ${escapeHtml(child.name)}" title="מחק פרופיל">${iconSvg('trash')}</button>
+            </div>`;
 
-        const titleEl = document.createElement('h3');
-        titleEl.style.margin = '0';
-        titleEl.style.cursor = 'pointer';
-        titleEl.innerText = `👤 ${child.name}`;
-
-        const actionsRow = document.createElement('div');
-        actionsRow.style.display = 'flex';
-        actionsRow.style.gap = '8px';
-
-        const editBtn = document.createElement('button');
-        editBtn.type = 'button';
-        editBtn.className = 'btn secondary-btn';
-        editBtn.style.width = 'auto';
-        editBtn.style.padding = '5px 10px';
-        editBtn.style.fontSize = '12px';
-        editBtn.innerText = '✏️ ערוך שם';
-        editBtn.addEventListener('click', (e) => window.editChildName(e, child.id));
-
-        const delBtn = document.createElement('button');
-        delBtn.type = 'button';
-        delBtn.className = 'btn secondary-btn';
-        delBtn.style.width = 'auto';
-        delBtn.style.padding = '5px 10px';
-        delBtn.style.fontSize = '12px';
-        delBtn.innerText = '🗑️';
-        delBtn.addEventListener('click', (e) => window.deleteChildProfile(e, child.id));
-
-        actionsRow.appendChild(editBtn);
-        actionsRow.appendChild(delBtn);
-
-        card.appendChild(titleEl);
-        card.appendChild(actionsRow);
-
-        card.addEventListener('click', () => {
+        card.querySelector('.profile-select').addEventListener('click', () => {
             currentChild = child;
             openParentOrPractice();
         });
+        card.querySelector('[data-action="edit"]').addEventListener('click', (e) => window.editChildName(e, child.id));
+        card.querySelector('[data-action="delete"]').addEventListener('click', (e) => window.deleteChildProfile(e, child.id));
 
         container.appendChild(card);
     });
@@ -209,8 +264,18 @@ window.loginAsGoogle = function() {
 function openParentOrPractice() {
     const nameSpan = document.getElementById('current-managing-child');
     if (nameSpan && currentChild) nameSpan.innerText = currentChild.name;
+
+    const form = document.getElementById('add-dictation-form');
+    if (form) form.reset();
+    resetEditState();
+    const dateInput = document.getElementById('dictation-date');
+    if (dateInput && !dateInput.value) dateInput.value = todayIso();
+    const picker = document.getElementById('calendar-date-picker');
+    if (picker) picker.value = '';
+
     renderDictationsList();
     showScreen('parent-screen');
+    window.scrollTo({ top: 0 });
 }
 
 async function showHebrewHint() {
@@ -289,11 +354,28 @@ function initAppHandlers() {
         loginBtn.addEventListener('click', window.loginAsGoogle);
     }
 
+    let savedTheme = null;
+    try { savedTheme = localStorage.getItem(THEME_KEY); } catch (e) {}
+    applyTheme(savedTheme || document.body.getAttribute('data-theme'));
+
     const themeSelect = document.getElementById('theme-select');
     if (themeSelect && !themeSelect.dataset.bound) {
         themeSelect.dataset.bound = '1';
         themeSelect.addEventListener('change', (e) => {
-            document.body.setAttribute('data-theme', e.target.value);
+            applyTheme(e.target.value);
+            try { localStorage.setItem(THEME_KEY, e.target.value); } catch (err) {}
+        });
+    }
+
+    const cancelEditBtn = document.getElementById('cancel-edit-btn');
+    if (cancelEditBtn && !cancelEditBtn.dataset.bound) {
+        cancelEditBtn.dataset.bound = '1';
+        cancelEditBtn.addEventListener('click', () => {
+            const form = document.getElementById('add-dictation-form');
+            if (form) form.reset();
+            resetEditState();
+            const dateInput = document.getElementById('dictation-date');
+            if (dateInput) dateInput.value = todayIso();
         });
     }
 
@@ -350,9 +432,9 @@ function initAppHandlers() {
             if (rawLines.length === 0) return alert('נא להכניס לפחות מילה אחת בשורה');
 
             const submitBtn = dictForm.querySelector('button[type="submit"]');
-            const originalBtnText = submitBtn ? submitBtn.innerText : 'שמור הכתבה בזיכרון 💾';
+            const originalBtnText = submitBtn ? submitBtn.innerText : SAVE_BTN_LABEL;
             if (submitBtn) {
-                submitBtn.innerText = 'מבצע תרגום אוטומטי חכם... ⏳';
+                submitBtn.innerText = 'מתרגם ושומר...';
                 submitBtn.disabled = true;
             }
 
@@ -405,8 +487,6 @@ function initAppHandlers() {
                     dict.words = processedWords;
                     dict.practiceMode = practiceMode;
                 }
-                editingDictId = null;
-                if (submitBtn) submitBtn.innerText = 'שמור הכתבה בזיכרון 💾';
             } else {
                 appData.dictations[currentChild.id].push({
                     id: 'dict_' + Date.now(),
@@ -421,6 +501,9 @@ function initAppHandlers() {
 
             saveAppData();
             dictForm.reset();
+            resetEditState();
+            const dateInput = document.getElementById('dictation-date');
+            if (dateInput) dateInput.value = todayIso();
             renderDictationsList();
         });
     }
@@ -472,8 +555,10 @@ function initAppHandlers() {
     const typedInput = document.getElementById('user-typed-word');
     if (typedInput && !typedInput.dataset.bound) {
         typedInput.dataset.bound = '1';
-        typedInput.addEventListener('keypress', (e) => {
-            if (e.key === 'Enter') checkTypedWord();
+        typedInput.addEventListener('keydown', (e) => {
+            if (e.key !== 'Enter' || e.isComposing || e.keyCode === 229) return;
+            e.preventDefault();
+            checkTypedWord();
         });
     }
 
@@ -519,35 +604,55 @@ function renderDictationsList(filterDate = null) {
         dicts = dicts.filter(d => d.date === filterDate);
     }
 
+    const filterLabel = document.getElementById('dictations-filter-label');
+    if (filterLabel) {
+        filterLabel.innerText = filterDate ? `מסונן: ${formatDate(filterDate)}` : `${dicts.length} סה"כ`;
+    }
+
     if (dicts.length === 0) {
-        listContainer.innerHTML = '<p style="text-align: center; color: #636e72;">אין הכתבות להצגה עבור בחירה זו.</p>';
+        listContainer.innerHTML = `<p class="list-empty">${filterDate ? 'אין הכתבות בתאריך שנבחר.' : 'עדיין אין הכתבות. הוסיפו הכתבה ראשונה בטופס למעלה.'}</p>`;
         return;
     }
 
-    dicts.forEach(dict => {
+    const sorted = [...dicts].sort((a, b) => String(b.date || '').localeCompare(String(a.date || '')));
+
+    sorted.forEach(dict => {
         const attempts = dict.attempts || 0;
         const status = dict.lastCategory || 'טרם נוסה';
-        const historyMistakes = dict.historyMistakes && dict.historyMistakes.length > 0
-            ? dict.historyMistakes.join(', ')
-            : 'אין טעויות שמורות עדיין 🌟';
+        const mistakes = Array.isArray(dict.historyMistakes) ? dict.historyMistakes : [];
 
         let modeName = 'רגיל';
         if (dict.practiceMode === 'challenge') modeName = 'אתגר אות ראשונה ואחרונה';
-        if (dict.practiceMode === 'translation') modeName = 'מבחן תרגום לאנגלית/עברית';
+        if (dict.practiceMode === 'translation') modeName = 'מבחן תרגום';
 
-        const item = document.createElement('div');
-        item.className = 'card';
-        item.style.padding = '20px';
+        const mistakesHtml = mistakes.length > 0
+            ? `<span>מילים לחיזוק:</span>${mistakes.map(m => `<span class="word-chip" dir="auto">${escapeHtml(m)}</span>`).join('')}`
+            : '<span>אין טעויות שמורות עדיין</span>';
+
+        const item = document.createElement('article');
+        item.className = 'dictation-item';
         item.innerHTML = `
-            <h4 style="color: var(--primary);">${dict.title} (${dict.lang === 'he' ? 'עברית' : 'אנגלית'}) [${modeName}]</h4>
-            <p style="margin-bottom: 8px;">תאריך: <b>${dict.date}</b> | מספר מילים: ${dict.words.length}</p>
-            <p style="margin-bottom: 8px;">📊 מספר ניסיונות: <b>${attempts}</b> | סטטוס אחרון: <b>${status}</b></p>
-            <p style="font-size: 14px; color: #d63031; margin-bottom: 15px;">❌ מילים שגויות: <b>${historyMistakes}</b></p>
-            <div style="display: flex; gap: 10px;">
-                <button type="button" class="btn success-btn" style="flex: 2; padding: 10px;" onclick="window.startPractice('${dict.id}')">התחל תרגול 🎯</button>
-                <button type="button" class="btn secondary-btn" style="flex: 1; padding: 10px;" onclick="window.editDictation('${dict.id}')">ערוך ✏️</button>
+            <div class="dictation-head">
+                <h4 class="dictation-title">${escapeHtml(dict.title)}</h4>
+                <div class="badge-row">
+                    <span class="badge badge-soft">${dict.lang === 'he' ? 'עברית' : 'אנגלית'}</span>
+                    <span class="badge">${escapeHtml(modeName)}</span>
+                    <span class="badge ${statusTone(status)}">${escapeHtml(status)}</span>
+                </div>
+            </div>
+            <div class="stats">
+                <div class="stat"><span class="stat-label">תאריך</span><span class="stat-value">${escapeHtml(formatDate(dict.date))}</span></div>
+                <div class="stat"><span class="stat-label">מילים</span><span class="stat-value">${dict.words.length}</span></div>
+                <div class="stat"><span class="stat-label">ניסיונות</span><span class="stat-value">${attempts}</span></div>
+            </div>
+            <div class="mistake-summary">${mistakesHtml}</div>
+            <div class="dictation-actions">
+                <button type="button" class="btn success-btn" data-action="practice">${iconSvg('play')}התחל תרגול</button>
+                <button type="button" class="btn ghost-btn btn-auto" data-action="edit">${iconSvg('pencil')}ערוך</button>
             </div>
         `;
+        item.querySelector('[data-action="practice"]').addEventListener('click', () => window.startPractice(dict.id));
+        item.querySelector('[data-action="edit"]').addEventListener('click', () => window.editDictation(dict.id));
         listContainer.appendChild(item);
     });
 }
@@ -569,8 +674,14 @@ window.editDictation = function(dictId) {
 
     editingDictId = dict.id;
     const submitBtn = document.querySelector('#add-dictation-form button[type="submit"]');
-    if (submitBtn) submitBtn.innerText = 'עדכן הכתבה 🔄';
-    window.scrollTo({ top: 0, behavior: 'smooth' });
+    if (submitBtn) submitBtn.innerText = UPDATE_BTN_LABEL;
+    const cancelBtn = document.getElementById('cancel-edit-btn');
+    if (cancelBtn) cancelBtn.hidden = false;
+    const formTitle = document.getElementById('dictation-form-title');
+    if (formTitle) formTitle.innerText = `עריכת הכתבה: ${dict.title}`;
+    const formCard = document.getElementById('dictation-form-card');
+    if (formCard) formCard.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    else window.scrollTo({ top: 0, behavior: 'smooth' });
 };
 
 function shuffleArray(array) {
@@ -640,6 +751,15 @@ function setupCurrentWordUI() {
 
     if (!inputField || !currentItem) return;
     inputField.value = '';
+    inputField.disabled = false;
+    const submitWordBtn = document.getElementById('submit-word-btn');
+    if (submitWordBtn) submitWordBtn.disabled = false;
+    const feedbackEl = document.getElementById('feedback-message');
+    if (feedbackEl) {
+        feedbackEl.innerText = '';
+        feedbackEl.className = 'feedback';
+    }
+    setTimeout(() => inputField.focus({ preventScroll: true }), 50);
 
     if (hebrewHintDisplay) hebrewHintDisplay.style.display = 'none';
     if (imageHintDisplay) imageHintDisplay.style.display = 'none';
@@ -840,17 +960,22 @@ async function speakCurrentWord() {
 
 function checkTypedWord() {
     const inputField = document.getElementById('user-typed-word');
-    if (!inputField || !currentDictation) return;
+    if (!inputField || !currentDictation || inputField.disabled) return;
     const typedValue = inputField.value.trim();
     const feedback = document.getElementById('feedback-message');
 
     if (!typedValue) {
         if (feedback) {
-            feedback.innerText = '⚠️ נא להקליד ערך לפני הבדיקה!';
-            feedback.style.color = '#fdcb6e';
+            feedback.innerText = 'נא להקליד תשובה לפני הבדיקה';
+            feedback.className = 'feedback is-warning';
         }
+        inputField.focus();
         return;
     }
+
+    inputField.disabled = true;
+    const submitWordBtn = document.getElementById('submit-word-btn');
+    if (submitWordBtn) submitWordBtn.disabled = true;
 
     const currentItem = currentDictation.words[currentWordIndex];
     const mode = currentDictation.practiceMode || 'standard';
@@ -879,13 +1004,13 @@ function checkTypedWord() {
 
     if (isCorrect) {
         if (feedback) {
-            feedback.innerText = '🎉 מעולה! נכון מאוד!';
-            feedback.style.color = '#00b894';
+            feedback.innerText = 'מעולה! נכון מאוד 🎉';
+            feedback.className = 'feedback is-correct';
         }
     } else {
         if (feedback) {
-            feedback.innerText = `❌ טעות. התשובה הנכונה היא: ${expectedDisplayValue}`;
-            feedback.style.color = '#e84393';
+            feedback.innerText = `כמעט! התשובה הנכונה: ${expectedDisplayValue}`;
+            feedback.className = 'feedback is-wrong';
         }
         userMistakes.push({ target: currentItem.word, typed: typedValue });
     }
@@ -903,7 +1028,10 @@ function checkTypedWord() {
     }
 
     setTimeout(() => {
-        if (feedback) feedback.innerText = '';
+        if (feedback) {
+            feedback.innerText = '';
+            feedback.className = 'feedback';
+        }
         if (currentWordIndex < currentDictation.words.length) {
             setupCurrentWordUI();
             speakCurrentWord();
@@ -952,7 +1080,17 @@ function showResults() {
 
     const scoreText = document.getElementById('final-score-text');
     if (scoreText) {
-        scoreText.innerHTML = `ענית נכון על ${correctCount} מתוך ${totalWords} מילים!<br><br><b>רמת ביצוע: ${category}</b><br><span style="font-size: 16px; color: #636e72;">${categoryEmoji}</span>`;
+        const pct = Math.round(percentage);
+        const ringColor = pct === 100 ? 'var(--success)' : pct >= 70 ? 'var(--warning)' : 'var(--danger)';
+        scoreText.innerHTML = `
+            <div class="score-ring" style="--pct: ${pct}; --ring-color: ${ringColor};" role="img" aria-label="ציון ${pct} אחוז">
+                <div class="score-ring-inner">
+                    <span class="score-pct">${pct}%</span>
+                    <span class="score-sub">${correctCount} מתוך ${totalWords}</span>
+                </div>
+            </div>
+            <span class="badge ${statusTone(category)}">${escapeHtml(category)}</span>
+            <p class="score-message">${escapeHtml(categoryEmoji)}</p>`;
     }
 
     const mistakesBox = document.getElementById('mistakes-review');
@@ -960,12 +1098,18 @@ function showResults() {
 
     if (mistakesBox) {
         if (userMistakes.length > 0) {
-            mistakesBox.innerHTML = '<h4>מילים שכדאי לחזק מהתרגול הנוכחי:</h4>' + userMistakes.map(m => `
-                <p>מילה: <b>${m.target}</b> (הקלדת: ${m.typed})</p>
-            `).join('');
-            if (practiceMistakesBtn) practiceMistakesBtn.style.display = 'inline-block';
+            mistakesBox.innerHTML = `
+                <h3 class="mistakes-title">מילים שכדאי לחזק</h3>
+                <ul class="mistake-list">
+                    ${userMistakes.map(m => `
+                        <li class="mistake-item">
+                            <span class="mistake-target" dir="auto">${escapeHtml(m.target)}</span>
+                            <span class="mistake-typed" dir="auto">הקלדת: ${escapeHtml(m.typed)}</span>
+                        </li>`).join('')}
+                </ul>`;
+            if (practiceMistakesBtn) practiceMistakesBtn.style.display = 'inline-flex';
         } else {
-            mistakesBox.innerHTML = '<p>✨ אין טעויות בכלל בתרגול הזה!</p>';
+            mistakesBox.innerHTML = '<p class="no-mistakes">אין טעויות בכלל בתרגול הזה!</p>';
             if (practiceMistakesBtn) practiceMistakesBtn.style.display = 'none';
         }
     }
