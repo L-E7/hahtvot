@@ -2,36 +2,70 @@
 <html lang="he" dir="rtl">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
     <title>אלופפיצ'ר - עולם ההכתבות</title>
+    <meta name="description" content="אלופפיצ'ר - תרגול הכתבות חכם לילדים בעברית ובאנגלית, עם הקראה קולית, רמזים ומעקב התקדמות.">
     <link rel="stylesheet" href="style.css">
     <link rel="manifest" href="manifest.json">
-    <meta name="theme-color" content="#6c5ce7">
+    <meta name="theme-color" content="#16a34a">
     <meta name="mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-    <link href="https://fonts.googleapis.com/css2?family=Rubik:wght@400;600;700;900&display=swap" rel="stylesheet">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Rubik:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 </head>
 <body data-theme="soccer">
 
-    <!-- מסך התחברות -->
-    <div id="auth-screen" class="screen active">
-        <div class="card auth-card" style="text-align: center;">
-            <h1 style="color: var(--primary);">🎒 אלופפיצ'ר</h1>
-            <p>עולם ההכתבות החכם והמתקדם לקראת המבחן של המורה!</p>
-            <div class="auth-buttons" style="display: flex; flex-direction: column; gap: 10px;">
-                <button type="button" id="main-login-btn" onclick="window.loginAsGoogle && window.loginAsGoogle()" class="btn primary-btn">כניסה והמשך לתרגול 🌐</button>
-            </div>
-        </div>
-    </div>
+    <!-- Icon sprite -->
+    <svg xmlns="http://www.w3.org/2000/svg" style="display: none;" aria-hidden="true">
+        <symbol id="i-back" viewBox="0 0 24 24"><path d="M5 12h14"/><path d="m12 5 7 7-7 7"/></symbol>
+        <symbol id="i-volume" viewBox="0 0 24 24"><path d="M11 4.702a.705.705 0 0 0-1.203-.498L6.413 7.587A1.4 1.4 0 0 1 5.416 8H3a1 1 0 0 0-1 1v6a1 1 0 0 0 1 1h2.416a1.4 1.4 0 0 1 .997.413l3.383 3.384A.705.705 0 0 0 11 19.298z"/><path d="M16 9a5 5 0 0 1 0 6"/><path d="M19.364 18.364a9 9 0 0 0 0-12.728"/></symbol>
+        <symbol id="i-pencil" viewBox="0 0 24 24"><path d="M21.174 6.812a1 1 0 0 0-3.986-3.987L3.842 16.174a2 2 0 0 0-.5.83l-1.321 4.352a.5.5 0 0 0 .623.622l4.353-1.32a2 2 0 0 0 .83-.497z"/><path d="m15 5 4 4"/></symbol>
+        <symbol id="i-trash" viewBox="0 0 24 24"><path d="M3 6h18"/><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"/><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"/></symbol>
+        <symbol id="i-plus" viewBox="0 0 24 24"><path d="M5 12h14"/><path d="M12 5v14"/></symbol>
+        <symbol id="i-check" viewBox="0 0 24 24"><path d="M20 6 9 17l-5-5"/></symbol>
+        <symbol id="i-bulb" viewBox="0 0 24 24"><path d="M15 14c.2-1 .7-1.7 1.5-2.5 1-.9 1.5-2.2 1.5-3.5A6 6 0 0 0 6 8c0 1 .2 2.2 1.5 3.5.7.7 1.3 1.5 1.5 2.5"/><path d="M9 18h6"/><path d="M10 22h4"/></symbol>
+        <symbol id="i-image" viewBox="0 0 24 24"><rect width="18" height="18" x="3" y="3" rx="2"/><circle cx="9" cy="9" r="2"/><path d="m21 15-3.086-3.086a2 2 0 0 0-2.828 0L6 21"/></symbol>
+        <symbol id="i-sliders" viewBox="0 0 24 24"><path d="M20 7h-9"/><path d="M14 17H5"/><circle cx="17" cy="17" r="3"/><circle cx="7" cy="7" r="3"/></symbol>
+        <symbol id="i-rotate" viewBox="0 0 24 24"><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/></symbol>
+        <symbol id="i-home" viewBox="0 0 24 24"><path d="M15 21v-8a1 1 0 0 0-1-1h-4a1 1 0 0 0-1 1v8"/><path d="M3 10a2 2 0 0 1 .709-1.528l7-5.999a2 2 0 0 1 2.582 0l7 5.999A2 2 0 0 1 21 10v9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/></symbol>
+        <symbol id="i-calendar" viewBox="0 0 24 24"><rect width="18" height="18" x="3" y="4" rx="2"/><path d="M16 2v4"/><path d="M8 2v4"/><path d="M3 10h18"/></symbol>
+        <symbol id="i-play" viewBox="0 0 24 24"><polygon points="6 3 20 12 6 21 6 3"/></symbol>
+        <symbol id="i-x" viewBox="0 0 24 24"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></symbol>
+        <symbol id="i-list" viewBox="0 0 24 24"><path d="M3 12h.01"/><path d="M3 18h.01"/><path d="M3 6h.01"/><path d="M8 12h13"/><path d="M8 18h13"/><path d="M8 6h13"/></symbol>
+        <symbol id="i-search" viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></symbol>
+    </svg>
 
-    <!-- מסך בחירת פרופיל וערכת נושא -->
-    <div id="profile-screen" class="screen">
-        <div class="container">
-            <header class="main-header">
-                <h2>👤 בחר פרופיל ילד</h2>
+    <main class="app">
+
+        <!-- מסך התחברות -->
+        <section id="auth-screen" class="screen active" aria-labelledby="auth-title">
+            <div class="card auth-card">
+                <div class="brand-mark" aria-hidden="true"><svg class="icon"><use href="#i-pencil"/></svg></div>
+                <h1 id="auth-title" class="brand-title">אלופפיצ'ר</h1>
+                <p class="lead">עולם ההכתבות החכם לקראת המבחן של המורה</p>
+                <ul class="feature-list">
+                    <li><svg class="icon"><use href="#i-volume"/></svg>הקראה קולית בעברית ובאנגלית</li>
+                    <li><svg class="icon"><use href="#i-bulb"/></svg>רמזים בתרגום ובתמונה</li>
+                    <li><svg class="icon"><use href="#i-check"/></svg>מעקב טעויות והתקדמות</li>
+                </ul>
+                <button type="button" id="main-login-btn" onclick="window.loginAsGoogle && window.loginAsGoogle()" class="btn primary-btn btn-lg">
+                    כניסה והמשך לתרגול
+                    <svg class="icon icon-flip"><use href="#i-back"/></svg>
+                </button>
+            </div>
+        </section>
+
+        <!-- מסך בחירת פרופיל וערכת נושא -->
+        <section id="profile-screen" class="screen" aria-labelledby="profile-title">
+            <header class="screen-header">
+                <div>
+                    <p class="eyebrow">שלום! מי מתרגל היום?</p>
+                    <h2 id="profile-title" class="screen-title">בחר פרופיל ילד</h2>
+                </div>
                 <div class="theme-selector">
-                    <label style="font-size: 14px; font-weight: bold;">ערכת נושא:</label>
+                    <label for="theme-select">ערכת נושא</label>
                     <select id="theme-select">
                         <option value="soccer">⚽ כדורגל</option>
                         <option value="minecraft">🟩 מיינקראפט</option>
@@ -43,32 +77,63 @@
 
             <div id="profiles-container" class="grid-container"></div>
 
-            <div class="card" style="padding: 20px;">
-                <h3 style="font-size: 18px;">הוספת ילד חדש</h3>
-                <input type="text" id="new-child-name" placeholder="שם הילד/ה...">
-                <button type="button" id="add-child-btn" onclick="window.addChildProfile && window.addChildProfile()" class="btn success-btn">הוסף ילד ➕</button>
-            </div>
-        </div>
-    </div>
-
-    <!-- מסך ניהול הכתבות להורים -->
-    <div id="parent-screen" class="screen">
-        <div class="container">
-            <button type="button" id="back-to-profiles" class="btn secondary-btn" style="width: auto; padding: 8px 15px; margin-bottom: 15px;">⬅ חזרה</button>
-            <h2>ניהול הכתבות עבור: <span id="current-managing-child" style="color: var(--primary);"></span></h2>
-            
             <div class="card">
-                <h3>✨ הוספת הכתבה חדשה (תרגום אוטומטי חכם)</h3>
-                <form id="add-dictation-form">
-                    <input type="text" id="dictation-title" placeholder="שם ההכתבה (למשל: חזרה למבחן - עמ' 37)" required>
-                    <select id="dictation-lang">
-                        <option value="he">עברית</option>
-                        <option value="en">אנגלית</option>
-                    </select>
-                    <input type="date" id="dictation-date" required>
-                    
-                    <div style="margin: 15px 0; background: rgba(108, 92, 231, 0.05); padding: 12px; border-radius: 12px; border: 1px dashed var(--primary);">
-                        <label style="display: block; font-weight: bold; margin-bottom: 5px; color: var(--primary);">בחר סגנון תרגול להכתבה זו:</label>
+                <div class="card-head">
+                    <h3 class="card-title">הוספת ילד חדש</h3>
+                    <span id="children-count" class="badge"></span>
+                </div>
+                <label for="new-child-name" class="sr-only">שם הילד/ה</label>
+                <div class="input-row">
+                    <input type="text" id="new-child-name" placeholder="שם הילד/ה..." autocomplete="off" maxlength="30">
+                    <button type="button" id="add-child-btn" onclick="window.addChildProfile && window.addChildProfile()" class="btn success-btn btn-auto">
+                        <svg class="icon"><use href="#i-plus"/></svg>
+                        הוסף
+                    </button>
+                </div>
+                <p class="help-text">ניתן להוסיף עד 5 פרופילים.</p>
+            </div>
+        </section>
+
+        <!-- מסך ניהול הכתבות להורים -->
+        <section id="parent-screen" class="screen" aria-labelledby="parent-title">
+            <header class="screen-header">
+                <button type="button" id="back-to-profiles" class="btn ghost-btn btn-auto btn-sm">
+                    <svg class="icon"><use href="#i-back"/></svg>
+                    חזרה
+                </button>
+            </header>
+            <div class="page-intro">
+                <p class="eyebrow">ניהול הכתבות</p>
+                <h2 id="parent-title" class="screen-title">ההכתבות של <span id="current-managing-child" class="accent"></span></h2>
+            </div>
+
+            <div class="card" id="dictation-form-card">
+                <div class="card-head">
+                    <h3 class="card-title" id="dictation-form-title">הוספת הכתבה חדשה</h3>
+                    <span class="badge badge-soft">תרגום אוטומטי</span>
+                </div>
+                <form id="add-dictation-form" class="form-stack">
+                    <div class="field">
+                        <label for="dictation-title">שם ההכתבה</label>
+                        <input type="text" id="dictation-title" placeholder="למשל: חזרה למבחן - עמ' 37" required>
+                    </div>
+
+                    <div class="field-row">
+                        <div class="field">
+                            <label for="dictation-lang">שפה</label>
+                            <select id="dictation-lang">
+                                <option value="he">עברית</option>
+                                <option value="en">אנגלית</option>
+                            </select>
+                        </div>
+                        <div class="field">
+                            <label for="dictation-date">תאריך המבחן</label>
+                            <input type="date" id="dictation-date" required>
+                        </div>
+                    </div>
+
+                    <div class="field">
+                        <label for="practice-mode-select">סגנון תרגול</label>
                         <select id="practice-mode-select">
                             <option value="standard">רגיל (כתיבת המילה המלאה לפי שמיעה)</option>
                             <option value="challenge">אתגר אות ראשונה ואחרונה (האמצע גלוי)</option>
@@ -76,103 +141,165 @@
                         </select>
                     </div>
 
-                    <textarea id="dictation-words" placeholder="הכנס מילים בשורות נפרדות (באנגלית המערכת תתרגם אוטומטית לעברית!):&#10;apple&#10;cat&#10;dog" rows="5" required></textarea>
-                    <small style="display: block; color: #636e72; margin-bottom: 15px;">💡 אין צורך לכתוב פירוש ידנית! הכנס מילים באנגלית והמערכת תתרגם לבד ברקע.</small>
-                    <button type="submit" class="btn primary-btn">שמור הכתבה בזיכרון 💾</button>
+                    <div class="field">
+                        <label for="dictation-words">רשימת מילים</label>
+                        <textarea id="dictation-words" placeholder="מילה אחת בכל שורה:&#10;apple&#10;cat&#10;dog" rows="6" required aria-describedby="words-help"></textarea>
+                        <p id="words-help" class="help-text">
+                            <svg class="icon icon-sm"><use href="#i-bulb"/></svg>
+                            אין צורך לכתוב פירוש. מילים באנגלית יתורגמו לעברית אוטומטית. אפשר גם לכתוב ידנית: <span dir="ltr">apple - תפוח</span>
+                        </p>
+                    </div>
+
+                    <div class="form-actions">
+                        <button type="submit" class="btn primary-btn">שמור הכתבה</button>
+                        <button type="button" id="cancel-edit-btn" class="btn ghost-btn btn-auto" hidden>
+                            <svg class="icon"><use href="#i-x"/></svg>
+                            ביטול עריכה
+                        </button>
+                    </div>
                 </form>
             </div>
 
             <div class="card">
-                <h3>📅 בחר הכתבה לפי תאריך בלוח השנה</h3>
-                <div class="calendar-filter-box" style="margin-bottom: 15px; display: flex; gap: 10px; justify-content: center; align-items: center; flex-wrap: wrap;">
-                    <input type="date" id="calendar-date-picker" style="width: auto; margin-bottom: 0;">
-                    <button type="button" id="filter-by-date-btn" class="btn primary-btn" style="width: auto; padding: 10px 15px; font-size: 14px;">הצג לתאריך 🔍</button>
-                    <button type="button" id="show-all-dictations-btn" class="btn secondary-btn" style="width: auto; padding: 10px 15px; font-size: 14px;">הצג הכל 📋</button>
+                <div class="card-head">
+                    <h3 class="card-title">ההכתבות שלי</h3>
+                    <span id="dictations-filter-label" class="badge"></span>
                 </div>
-                <div id="existing-dictations-list"></div>
+                <div class="filter-bar">
+                    <label for="calendar-date-picker" class="sr-only">בחר תאריך</label>
+                    <input type="date" id="calendar-date-picker">
+                    <button type="button" id="filter-by-date-btn" class="btn primary-btn btn-auto btn-sm">
+                        <svg class="icon"><use href="#i-search"/></svg>
+                        הצג לתאריך
+                    </button>
+                    <button type="button" id="show-all-dictations-btn" class="btn ghost-btn btn-auto btn-sm">
+                        <svg class="icon"><use href="#i-list"/></svg>
+                        הצג הכל
+                    </button>
+                </div>
+                <div id="existing-dictations-list" class="dictation-list"></div>
             </div>
-        </div>
-    </div>
+        </section>
 
-    <!-- מסך תרגול הכתבה לילד -->
-    <div id="practice-screen" class="screen">
-        <div class="container card" style="text-align: center;">
-            <button type="button" id="back-to-profiles-from-practice" class="btn secondary-btn" style="width: auto; padding: 6px 12px; font-size: 14px; float: right; margin-bottom: 10px;">⬅ יציאה</button>
-            <h2 id="practice-title-display" style="clear: both; margin-top: 10px;">תרגול הכתבה</h2>
-            
-            <div class="progress-bar-container">
-                <div id="progress-bar"></div>
-            </div>
-            <p id="practice-word-counter" style="font-weight: bold; color: #636e72;">מילה 1 מתוך 5</p>
+        <!-- מסך תרגול הכתבה לילד -->
+        <section id="practice-screen" class="screen" aria-labelledby="practice-title-display">
+            <div class="card practice-card">
+                <div class="practice-top">
+                    <button type="button" id="back-to-profiles-from-practice" class="btn ghost-btn btn-auto btn-sm">
+                        <svg class="icon"><use href="#i-back"/></svg>
+                        יציאה
+                    </button>
+                    <p id="practice-word-counter" class="counter">מילה 1 מתוך 5</p>
+                </div>
 
-            <div id="mode-instruction-box" style="font-size: 16px; color: #e17055; font-weight: bold; margin: 10px 0; display: none; background: #fff3cd; padding: 8px; border-radius: 8px;">
-                <span id="mode-instruction-text"></span>
-            </div>
+                <h2 id="practice-title-display" class="practice-title">תרגול הכתבה</h2>
 
-            <div id="challenge-hint-box" style="font-size: 22px; color: var(--primary); font-weight: bold; margin: 12px 0; display: none; letter-spacing: 2px;">
-                רמז מבנה: <span id="challenge-hint-text"></span>
-            </div>
+                <div class="progress-bar-container" role="presentation">
+                    <div id="progress-bar"></div>
+                </div>
 
-            <div style="display: flex; gap: 10px; justify-content: center; flex-wrap: wrap; margin: 12px 0;">
-                <button type="button" id="hebrew-hint-btn" class="btn warning-btn" style="width: auto; padding: 8px 14px; font-size: 14px;">💡 רמז בעברית</button>
-                <button type="button" id="image-hint-btn" class="btn secondary-btn" style="width: auto; padding: 8px 14px; font-size: 14px;">🖼️ רמז תמונה</button>
-            </div>
+                <div id="mode-instruction-box" class="notice notice-warning" style="display: none;">
+                    <span id="mode-instruction-text"></span>
+                </div>
 
-            <div id="hebrew-hint-display" style="display: none; background: #e8f8f5; color: #00897b; font-weight: bold; padding: 10px; border-radius: 10px; margin: 10px 0;">
-                עברית: <span id="hebrew-hint-word"></span>
-            </div>
+                <div id="challenge-hint-box" class="challenge-hint" style="display: none;">
+                    <span class="challenge-label">רמז מבנה</span>
+                    <span id="challenge-hint-text" class="challenge-word" dir="ltr"></span>
+                </div>
 
-            <div id="image-hint-display" style="display: none; margin: 12px auto; max-width: 240px;">
-                <p id="image-hint-status" style="font-size: 13px; color: #636e72; margin-bottom: 6px;"></p>
-                <img id="image-hint-img" src="" alt="רמז תמונה" style="display: none; width: 100%; max-height: 180px; object-fit: contain; border-radius: 12px; border: 2px solid #dfe6e9; background: #fff;">
-            </div>
+                <div class="speak-area">
+                    <button type="button" id="speak-word-btn" class="speak-btn" aria-label="שמע מילה">
+                        <svg class="icon"><use href="#i-volume"/></svg>
+                    </button>
+                    <span class="speak-label">לחצו לשמיעת המילה</span>
+                    <p id="speech-status" class="speech-status" aria-live="polite"></p>
+                </div>
 
-            <div class="audio-controls" style="display: flex; flex-direction: column; gap: 10px; align-items: center; margin: 18px 0;">
-                <button type="button" id="speak-word-btn" class="btn primary-btn" style="font-size: 18px; padding: 16px;">🔊 שמע מילה</button>
-                <p id="speech-status" style="font-size: 12px; color: #636e72; margin: 0;"></p>
-                
-                <div style="display: flex; gap: 10px; width: 100%; justify-content: center; flex-wrap: wrap;">
-                    <div style="flex: 1; min-width: 140px; text-align: right;">
-                        <label style="font-size: 12px; display: block; margin-bottom: 3px; font-weight: bold;">מהירות הקראה:</label>
-                        <select id="speech-rate-select" style="margin-bottom: 0;">
-                            <option value="0.25">🐢🐢 איטי במיוחד (0.25)</option>
-                            <option value="0.5">🐢 איטי מאוד (0.5)</option>
-                            <option value="0.75" selected>🚶 איטי וברור (0.75)</option>
-                            <option value="1.0">🏃 רגיל (1.0)</option>
-                        </select>
+                <div class="hint-buttons">
+                    <button type="button" id="hebrew-hint-btn" class="btn chip-btn">
+                        <svg class="icon"><use href="#i-bulb"/></svg>
+                        רמז בעברית
+                    </button>
+                    <button type="button" id="image-hint-btn" class="btn chip-btn">
+                        <svg class="icon"><use href="#i-image"/></svg>
+                        רמז תמונה
+                    </button>
+                </div>
+
+                <div id="hebrew-hint-display" class="notice notice-success" style="display: none;" aria-live="polite">
+                    עברית: <strong id="hebrew-hint-word"></strong>
+                </div>
+
+                <div id="image-hint-display" class="image-hint" style="display: none;" aria-live="polite">
+                    <p id="image-hint-status" class="help-text"></p>
+                    <img id="image-hint-img" src="" alt="רמז תמונה למילה" style="display: none;">
+                </div>
+
+                <div class="answer-area">
+                    <label for="user-typed-word" class="sr-only">התשובה שלך</label>
+                    <div class="input-row">
+                        <input type="text" id="user-typed-word" placeholder="הקלד את התשובה כאן..." autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false" class="answer-input">
+                        <button type="button" id="submit-word-btn" class="btn success-btn btn-auto btn-lg">
+                            <svg class="icon"><use href="#i-check"/></svg>
+                            בדוק
+                        </button>
                     </div>
-                    <div style="flex: 1; min-width: 140px; text-align: right;">
-                        <label style="font-size: 12px; display: block; margin-bottom: 3px; font-weight: bold;">סוג קול (דובר/ה):</label>
-                        <select id="speech-voice-select" style="margin-bottom: 0;">
-                            <option value="auto">אוֹטוֹמָטִי</option>
-                            <option value="female">קול אישה 👩</option>
-                            <option value="male">קול גבר 👨</option>
-                        </select>
+                    <p id="feedback-message" class="feedback" role="status" aria-live="polite"></p>
+                </div>
+
+                <details class="settings-panel">
+                    <summary>
+                        <svg class="icon"><use href="#i-sliders"/></svg>
+                        הגדרות הקראה
+                    </summary>
+                    <div class="field-row">
+                        <div class="field">
+                            <label for="speech-rate-select">מהירות הקראה</label>
+                            <select id="speech-rate-select">
+                                <option value="0.25">🐢🐢 איטי במיוחד (0.25)</option>
+                                <option value="0.5">🐢 איטי מאוד (0.5)</option>
+                                <option value="0.75" selected>🚶 איטי וברור (0.75)</option>
+                                <option value="1.0">🏃 רגיל (1.0)</option>
+                            </select>
+                        </div>
+                        <div class="field">
+                            <label for="speech-voice-select">סוג קול</label>
+                            <select id="speech-voice-select">
+                                <option value="auto">אוטומטי</option>
+                                <option value="female">קול אישה</option>
+                                <option value="male">קול גבר</option>
+                            </select>
+                        </div>
                     </div>
+                </details>
+            </div>
+        </section>
+
+        <!-- מסך סיכום וציונים -->
+        <section id="results-screen" class="screen" aria-labelledby="results-title">
+            <div class="card results-card">
+                <div class="celebrate" aria-hidden="true">🎉</div>
+                <h2 id="results-title" class="screen-title">כל הכבוד! סיימת את ההכתבה</h2>
+                <div id="final-score-text" class="score-block"></div>
+                <div id="mistakes-review" class="mistakes-box"></div>
+                <div class="stack-actions">
+                    <button type="button" id="restart-practice-btn" class="btn primary-btn">
+                        <svg class="icon"><use href="#i-rotate"/></svg>
+                        תרגל שוב
+                    </button>
+                    <button type="button" id="practice-mistakes-only-btn" class="btn warning-btn" style="display: none;">
+                        <svg class="icon"><use href="#i-bulb"/></svg>
+                        תרגל רק את המילים שטעית בהן
+                    </button>
+                    <button type="button" id="finish-practice-btn" class="btn ghost-btn">
+                        <svg class="icon"><use href="#i-home"/></svg>
+                        חזרה לתפריט הראשי
+                    </button>
                 </div>
             </div>
+        </section>
 
-            <div class="input-area" style="display: flex; gap: 10px; margin-top: 15px;">
-                <input type="text" id="user-typed-word" placeholder="הקלד את התשובה כאן..." autocomplete="off" style="margin-bottom: 0; flex: 1;">
-                <button type="button" id="submit-word-btn" class="btn success-btn" style="width: auto; padding: 0 25px;">בדוק 🎯</button>
-            </div>
-            <p id="feedback-message" style="font-size: 18px; font-weight: bold; margin-top: 15px; min-height: 25px;"></p>
-        </div>
-    </div>
-
-    <!-- מסך סיכום וציונים -->
-    <div id="results-screen" class="screen">
-        <div class="container card text-center">
-            <h2>🎉 כל הכבוד! סיימת את ההכתבה!</h2>
-            <p id="final-score-text" class="big-text" style="font-size: 18px; margin: 20px 0;"></p>
-            <div id="mistakes-review" class="mistakes-box" style="text-align: right; margin-bottom: 20px;"></div>
-            <div style="display: flex; flex-direction: column; gap: 10px;">
-                <button type="button" id="restart-practice-btn" class="btn primary-btn">תרגל שוב 🔄</button>
-                <button type="button" id="practice-mistakes-only-btn" class="btn warning-btn" style="display: none;">תרגל רק על המילים שטעית בהן 💡</button>
-                <button type="button" id="finish-practice-btn" class="btn secondary-btn">חזרה לתפריט הראשי 🏠</button>
-            </div>
-        </div>
-    </div>
+    </main>
 
     <script src="app.js"></script>
 </body>
